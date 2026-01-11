@@ -1,0 +1,264 @@
+/* UserDashboard.css */
+
+:root {
+  --bg: #ffffff;
+  --text: #111827;
+  --muted: rgba(17, 24, 39, 0.72);
+  --border: #e5e7eb;
+
+  --ok-bg: #dcfce7;
+  --ok-border: #bbf7d0;
+  --ok-text: #14532d;
+
+  --err-bg: #fee2e2;
+  --err-border: #fecaca;
+  --err-text: #7f1d1d;
+
+  --btn-bg: #111827;
+  --btn-text: #ffffff;
+
+  --pill-reviewed-bg: #dcfce7;
+  --pill-pending-bg: #fef9c3;
+
+  --focus: rgba(17, 24, 39, 0.25);
+}
+
+/* FIX: ensure inputs don't overflow container */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.udPage {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+  color: var(--text);
+}
+
+.udTitle {
+  margin: 0 0 10px;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.udSectionTitle {
+  margin-top: 24px;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.udMuted {
+  opacity: 0.85;
+}
+
+.udAlert {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.udAlert--error {
+  background: var(--err-bg);
+  border-color: var(--err-border);
+  color: var(--err-text);
+}
+
+.udAlert--ok {
+  background: var(--ok-bg);
+  border-color: var(--ok-border);
+  color: var(--ok-text);
+}
+
+/* Form Card */
+.udCard {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  background: var(--bg);
+}
+
+.udGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 10px;
+}
+
+.udField {
+  min-width: 0;
+}
+
+.udField--full {
+  margin-top: 10px;
+}
+
+.udLbl {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.udInp {
+  width: 100%;
+  max-width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font: inherit;
+  outline: none;
+  line-height: 1.2;
+}
+
+.udInp:focus {
+  border-color: rgba(17, 24, 39, 0.35);
+  box-shadow: 0 0 0 4px var(--focus);
+}
+
+.udInp[type="date"],
+.udInp[type="time"] {
+  min-width: 0;
+}
+
+.udTextarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+/* Button */
+.udBtn {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--btn-bg);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.udBtn:hover {
+  opacity: 0.95;
+}
+
+.udBtn:active {
+  transform: translateY(1px);
+}
+
+.udBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Reports list */
+.udReportList {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.udReportCard {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  background: var(--bg);
+}
+
+.udReportTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.udReportTitle {
+  font-size: 14px;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.udPill {
+  flex: 0 0 auto;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.udPill--reviewed {
+  background: var(--pill-reviewed-bg);
+}
+
+.udPill--pending {
+  background: var(--pill-pending-bg);
+}
+
+.udReportReason {
+  opacity: 0.9;
+  margin-top: 6px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.udReportDept {
+  opacity: 0.7;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+/* Mobile optimization */
+@media (max-width: 640px) {
+  .udPage {
+    padding: 12px;
+  }
+
+  .udTitle {
+    font-size: 18px;
+  }
+
+  
+  /* Inputs stacked */
+  .udGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .udInp {
+    padding: 12px 12px;
+    border-radius: 14px;
+  }
+
+  /* iOS: prevent zoom + better fit */
+  .udInp[type="date"],
+  .udInp[type="time"] {
+    font-size: 16px;
+  }
+
+  .udBtn {
+    width: 100%;
+    padding: 12px 12px;
+  }
+
+  .udReportTop {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .udPill {
+    margin-top: 6px;
+  }
+}
+
+@media (max-width: 380px) {
+  .udPill {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}

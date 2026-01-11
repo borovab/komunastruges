@@ -1,0 +1,295 @@
+/* AdminWorkers.css */
+
+:root {
+  --bg: #ffffff;
+  --text: #111827;
+  --muted: rgba(17, 24, 39, 0.72);
+  --border: #e5e7eb;
+
+  --ok-bg: #dcfce7;
+  --ok-border: #bbf7d0;
+  --ok-text: #14532d;
+
+  --err-bg: #fee2e2;
+  --err-border: #fecaca;
+  --err-text: #7f1d1d;
+
+  --btn-bg: #111827;
+  --btn-text: #ffffff;
+
+  --danger-bg: #991b1b;
+  --danger-border: #991b1b;
+}
+
+.awPage {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 16px;
+  color: var(--text);
+}
+
+.awHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.awTitle {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.awMuted {
+  opacity: 0.85;
+}
+
+.awAlert {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.awAlert--error {
+  background: var(--err-bg);
+  border-color: var(--err-border);
+  color: var(--err-text);
+}
+
+.awAlert--ok {
+  background: var(--ok-bg);
+  border-color: var(--ok-border);
+  color: var(--ok-text);
+}
+
+/* Layout */
+.awGrid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.awCard {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  background: var(--bg);
+  margin-top: 12px;
+}
+
+.awCardTitle {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+/* Form */
+.awForm {
+  display: grid;
+  gap: 10px;
+}
+
+.awLbl {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  opacity: 0.95;
+}
+
+.awInp {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  outline: none;
+  font: inherit;
+}
+
+.awInp:focus {
+  border-color: rgba(17, 24, 39, 0.35);
+}
+
+.awForm2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Users list */
+.awUserList {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.awUserItem {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--bg);
+}
+
+.awUserTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.awUserLeft {
+  min-width: 0;
+}
+
+.awUserName {
+  display: block;
+  font-size: 14px;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.awUserSub {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.awUserTime {
+  flex: 0 0 auto;
+  font-size: 12px;
+  opacity: 0.7;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.awActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+/* Edit block */
+.awEdit {
+  margin-top: 10px;
+}
+
+.awEditGrid {
+  display: grid;
+  gap: 10px;
+}
+
+/* Buttons */
+.awBtn {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--btn-bg);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.awBtn:hover {
+  opacity: 0.95;
+}
+
+.awBtn:active {
+  transform: translateY(1px);
+}
+
+.awBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.awBtn--small {
+  padding: 8px 10px;
+}
+
+.awBtn--ghost {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.awBtn--danger {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+
+/* Mobile: create on top, list below, form becomes 1 col */
+@media (max-width: 720px) {
+  .awGrid2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* force order on mobile */
+  .awCard--create {
+    order: 1;
+  }
+  .awCard--list {
+    order: 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .awPage {
+    padding: 12px;
+  }
+
+  .awTitle {
+    font-size: 18px;
+  }
+
+  .awHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .awBtn--ghost {
+    width: 100%;
+  }
+
+  .awForm2 {
+    grid-template-columns: 1fr;
+  }
+
+  .awUserTop {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .awUserTime {
+    white-space: normal;
+    text-align: left;
+  }
+
+  .awBtn {
+    width: 100%;
+  }
+
+  .awActions {
+    width: 100%;
+  }
+}
+/* ✅ iOS: stop zoom on focus (force 16px) */
+@media (max-width: 900px) {
+  .adPage input,
+  .adPage textarea,
+  .adPage select,
+  .adPage button {
+    font-size: 16px !important;
+  }
+
+  /* edhe për date/time nëse i ke në këtë faqe */
+  .adPage input[type="date"],
+  .adPage input[type="time"] {
+    font-size: 16px !important;
+  }
+}

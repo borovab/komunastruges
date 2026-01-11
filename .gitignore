@@ -1,0 +1,10 @@
+# dependencies
+node_modules
+dist
+.vite
+
+# env
+server/.env
+
+# logs
+*.log
