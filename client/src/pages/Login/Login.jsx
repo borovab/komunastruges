@@ -10,6 +10,7 @@ export default function Login() {
 
   React.useEffect(() => {
     if (existing?.user?.role === "admin") navigate("/admin", { replace: true });
+        if (existing?.user?.role === "manager") navigate("/manager", { replace: true });
     if (existing?.user?.role === "user") navigate("/user", { replace: true });
   }, [existing, navigate]);
 

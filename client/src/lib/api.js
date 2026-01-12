@@ -1,3 +1,4 @@
+// src/lib/api.js
 const SESSION_KEY = "kr_session";
 
 export function getSession() {
@@ -40,6 +41,16 @@ export const api = {
   logout: () => request("/api/auth/logout", { method: "POST" }),
   me: () => request("/api/auth/me"),
 
+  // profile (me)
+  getProfile: () => request("/api/profile"),
+  updateProfile: (payload) => request("/api/profile", { method: "PUT", body: payload }),
+
+  // departments
+  listDepartments: () => request("/api/departments"),
+  createDepartment: (payload) => request("/api/departments", { method: "POST", body: payload }),
+  updateDepartment: (id, payload) => request(`/api/departments/${id}`, { method: "PUT", body: payload }),
+  deleteDepartment: (id) => request(`/api/departments/${id}`, { method: "DELETE" }),
+
   // users (admin)
   createUser: (payload) => request("/api/users", { method: "POST", body: payload }),
   listUsers: () => request("/api/users"),
@@ -48,11 +59,6 @@ export const api = {
 
   // reports
   createReport: (payload) => request("/api/reports", { method: "POST", body: payload }),
-  getReports: () => request("/api/reports"),
   listReports: () => request("/api/reports"),
   reviewReport: (id) => request(`/api/reports/${id}/review`, { method: "PATCH" }),
-  updateReport: (id, payload) => request(`/api/reports/${id}`, { method: "PUT", body: payload }),
-  deleteReport: (id) => request(`/api/reports/${id}`, { method: "DELETE" }),
-   getProfile: () => request("/api/profile"),
-  updateProfile: (payload) => request("/api/profile", { method: "PUT", body: payload }),
 };

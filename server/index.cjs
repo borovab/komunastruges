@@ -1,3 +1,4 @@
+// server/index.js
 require("dotenv").config();
 
 const express = require("express");
@@ -15,19 +16,17 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 const SESSION_DAYS = Number(process.env.SESSION_DAYS || 7);
 
 app.use(express.json({ limit: "200kb" }));
-const allowedOrigins = CORS_ORIGIN.split(",")
+
+const allowedOrigins = String(CORS_ORIGIN)
+  .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, cb) => {
-      // lejo request-e pa Origin (p.sh. curl/postman)
-      if (!origin) return cb(null, true);
-
-      // lejo çdo origin nga lista
+      if (!origin) return cb(null, true); // curl/postman
       if (allowedOrigins.includes(origin)) return cb(null, true);
-
       return cb(new Error("CORS blocked: " + origin));
     },
     credentials: false,
@@ -35,13 +34,20 @@ app.use(
 );
 
 // ---- Helpers ----
+function normRole(v) {
+  const r = String(v || "").trim().toLowerCase();
+  // tolerate common misspellings if any exist in DB
+  if (["menagjer", "menaxher", "menager"].includes(r)) return "manager";
+  return r;
+}
+
 async function getAuthUser(req) {
   const token = getBearerToken(req);
   if (!token) return null;
 
   const [rows] = await pool.query(
     `
-    SELECT u.id, u.username, u.role, u.full_name
+    SELECT u.id, u.username, u.role, u.full_name, u.department_id
     FROM sessions s
     JOIN users u ON u.id = s.user_id
     WHERE s.token = :token AND s.expires_at > NOW()
@@ -53,7 +59,13 @@ async function getAuthUser(req) {
   const u = rows?.[0];
   if (!u) return null;
 
-  return { id: u.id, username: u.username, role: u.role, fullName: u.full_name };
+  return {
+    id: u.id,
+    username: u.username,
+    role: normRole(u.role),
+    fullName: u.full_name,
+    departmentId: u.department_id || null,
+  };
 }
 
 function requireAuth(role) {
@@ -61,7 +73,9 @@ function requireAuth(role) {
     try {
       const me = await getAuthUser(req);
       if (!me) return res.status(401).json({ error: "Unauthorized" });
-      if (role && me.role !== role) return res.status(403).json({ error: "Forbidden" });
+
+      if (role && me.role !== normRole(role)) return res.status(403).json({ error: "Forbidden" });
+
       req.user = me;
       next();
     } catch (e) {
@@ -70,13 +84,28 @@ function requireAuth(role) {
   };
 }
 
-// Cleanup expired sessions occasionally (cheap)
+function requireAnyRole(roles) {
+  return async (req, res, next) => {
+    try {
+      const me = await getAuthUser(req);
+      if (!me) return res.status(401).json({ error: "Unauthorized" });
+
+      const allowed = (roles || []).map(normRole);
+      console.log("[AUTH]", { meRole: me.role, allowed, userId: me.id, username: me.username });
+      if (allowed.length && !allowed.includes(me.role)) return res.status(403).json({ error: "Forbidden" });
+
+      req.user = me;
+      next();
+    } catch (e) {
+      return res.status(500).json({ error: e?.message || "Server error" });
+    }
+  };
+}
+
 async function cleanupSessions() {
   try {
     await pool.query(`DELETE FROM sessions WHERE expires_at <= NOW()`);
-  } catch {
-    // ignore
-  }
+  } catch {}
 }
 
 // ---- AUTH ----
@@ -89,7 +118,7 @@ app.post("/api/auth/login", async (req, res) => {
     if (!username || !password) return res.status(400).json({ error: "Missing username/password" });
 
     const [rows] = await pool.query(
-      `SELECT id, username, role, full_name, password_hash FROM users WHERE username = :username LIMIT 1`,
+      `SELECT id, username, role, full_name, password_hash, department_id FROM users WHERE username = :username LIMIT 1`,
       { username }
     );
 
@@ -109,17 +138,38 @@ app.post("/api/auth/login", async (req, res) => {
 
     return res.json({
       token,
-      user: { id: u.id, username: u.username, role: u.role, fullName: u.full_name },
+      user: {
+        id: u.id,
+        username: u.username,
+        role: normRole(u.role),
+        fullName: u.full_name,
+        departmentId: u.department_id || null,
+      },
     });
   } catch (e) {
     return res.status(500).json({ error: e?.message || "Server error" });
   }
 });
+
+app.post("/api/auth/logout", async (req, res) => {
+  try {
+    const token = getBearerToken(req);
+    if (token) await pool.query(`DELETE FROM sessions WHERE token = :token`, { token });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Server error" });
+  }
+});
+
+app.get("/api/auth/me", requireAuth(), async (req, res) => {
+  return res.json({ user: req.user });
+});
+
 // ---- PROFILE (me) ----
 app.get("/api/profile", requireAuth(), async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, username, role, full_name, created_at FROM users WHERE id=:id LIMIT 1`,
+      `SELECT id, username, role, full_name, department_id, created_at FROM users WHERE id=:id LIMIT 1`,
       { id: req.user.id }
     );
 
@@ -130,8 +180,9 @@ app.get("/api/profile", requireAuth(), async (req, res) => {
       user: {
         id: u.id,
         username: u.username,
-        role: u.role,
+        role: normRole(u.role),
         fullName: u.full_name,
+        departmentId: u.department_id || null,
         createdAt: new Date(u.created_at).toISOString(),
       },
     });
@@ -143,24 +194,22 @@ app.get("/api/profile", requireAuth(), async (req, res) => {
 app.put("/api/profile", requireAuth(), async (req, res) => {
   try {
     const fullName = String(req.body?.fullName || "").trim();
-    const password = String(req.body?.password || "").trim(); // opsional
+    const password = String(req.body?.password || "").trim(); // optional
 
     if (!fullName) return res.status(400).json({ error: "Plotëso fullName." });
-    if (password && password.length < 6) {
-      return res.status(400).json({ error: "Password shumë i shkurtër (min 6)." });
-    }
+    if (password && password.length < 6) return res.status(400).json({ error: "Password shumë i shkurtër (min 6)." });
 
     if (password) {
       const passwordHash = await bcrypt.hash(password, 10);
       await pool.query(
-        `UPDATE users SET full_name=:fullName, password_hash=:passwordHash, updated_at=NOW() WHERE id=:id`,
+        `UPDATE users SET full_name=:fullName, password_hash=:passwordHash WHERE id=:id`,
         { id: req.user.id, fullName, passwordHash }
       );
     } else {
-      await pool.query(
-        `UPDATE users SET full_name=:fullName, updated_at=NOW() WHERE id=:id`,
-        { id: req.user.id, fullName }
-      );
+      await pool.query(`UPDATE users SET full_name=:fullName WHERE id=:id`, {
+        id: req.user.id,
+        fullName,
+      });
     }
 
     return res.json({ ok: true });
@@ -169,75 +218,22 @@ app.put("/api/profile", requireAuth(), async (req, res) => {
   }
 });
 
-
-app.post("/api/auth/logout", async (req, res) => {
-  try {
-    const token = getBearerToken(req);
-    if (token) {
-      await pool.query(`DELETE FROM sessions WHERE token = :token`, { token });
-    }
-    return res.json({ ok: true });
-  } catch (e) {
-    return res.status(500).json({ error: e?.message || "Server error" });
-  }
-});
-
-app.get("/api/auth/me", requireAuth(), async (req, res) => {
-  return res.json({ user: req.user });
-});
-
-// ---- USERS (admin) ----
-app.post("/api/users", requireAuth("admin"), async (req, res) => {
-  try {
-    const username = String(req.body?.username || "").trim();
-    const password = String(req.body?.password || "").trim();
-    const fullName = String(req.body?.fullName || "").trim();
-    const role = req.body?.role === "admin" ? "admin" : "user";
-
-    if (!username || !password || !fullName) {
-      return res.status(400).json({ error: "Plotëso fullName, username, password." });
-    }
-
-    const [exists] = await pool.query(
-      `SELECT 1 FROM users WHERE LOWER(username)=LOWER(:username) LIMIT 1`,
-      { username }
-    );
-    if (exists.length) return res.status(409).json({ error: "Username ekziston." });
-
-    const id = uuid();
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    await pool.query(
-      `
-      INSERT INTO users (id, username, password_hash, role, full_name)
-      VALUES (:id, :username, :passwordHash, :role, :fullName)
-      `,
-      { id, username, passwordHash, role, fullName }
-    );
-
-    return res.status(201).json({ user: { id, username, role, fullName } });
-  } catch (e) {
-    return res.status(500).json({ error: e?.message || "Server error" });
-  }
-});
-
-app.get("/api/users", requireAuth("admin"), async (req, res) => {
+// ---- DEPARTMENTS ----
+app.get("/api/departments", requireAuth(), async (req, res) => {
   try {
     const [rows] = await pool.query(
       `
-      SELECT id, username, role, full_name, created_at
-      FROM users
-      ORDER BY created_at DESC
+      SELECT id, name, created_at
+      FROM departments
+      ORDER BY name ASC
       `
     );
 
     return res.json({
-      users: rows.map((u) => ({
-        id: u.id,
-        username: u.username,
-        role: u.role,
-        fullName: u.full_name,
-        createdAt: new Date(u.created_at).toISOString(),
+      departments: rows.map((d) => ({
+        id: d.id,
+        name: d.name,
+        createdAt: d.created_at ? new Date(d.created_at).toISOString() : null,
       })),
     });
   } catch (e) {
@@ -245,21 +241,264 @@ app.get("/api/users", requireAuth("admin"), async (req, res) => {
   }
 });
 
-app.put("/api/users/:id", requireAuth("admin"), async (req, res) => {
+app.post("/api/departments", requireAuth("admin"), async (req, res) => {
+  try {
+    const name = String(req.body?.name || "").trim();
+    if (!name) return res.status(400).json({ error: "Plotëso name." });
+
+    const [dup] = await pool.query(`SELECT 1 FROM departments WHERE LOWER(name)=LOWER(:name) LIMIT 1`, { name });
+    if (dup.length) return res.status(409).json({ error: "Departamenti ekziston." });
+
+    const id = uuid();
+    await pool.query(`INSERT INTO departments (id, name) VALUES (:id, :name)`, { id, name });
+
+    return res.status(201).json({ department: { id, name } });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Server error" });
+  }
+});
+
+app.put("/api/departments/:id", requireAuth("admin"), async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
+    const name = String(req.body?.name || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing id." });
+    if (!name) return res.status(400).json({ error: "Plotëso name." });
+
+    const [exists] = await pool.query(`SELECT 1 FROM departments WHERE id=:id LIMIT 1`, { id });
+    if (!exists.length) return res.status(404).json({ error: "Not found" });
+
+    const [dup] = await pool.query(
+      `SELECT 1 FROM departments WHERE LOWER(name)=LOWER(:name) AND id <> :id LIMIT 1`,
+      { name, id }
+    );
+    if (dup.length) return res.status(409).json({ error: "Departamenti ekziston." });
+
+    await pool.query(`UPDATE departments SET name=:name WHERE id=:id`, { id, name });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Server error" });
+  }
+});
+
+app.delete("/api/departments/:id", requireAuth("admin"), async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing id." });
+
+    const [exists] = await pool.query(`SELECT 1 FROM departments WHERE id=:id LIMIT 1`, { id });
+    if (!exists.length) return res.status(404).json({ error: "Not found" });
+
+    const [inUse] = await pool.query(
+      `SELECT 1 FROM users WHERE department_id=:id AND role IN ('user','manager') LIMIT 1`,
+      { id }
+    );
+    if (inUse.length) return res.status(409).json({ error: "Departamenti është në përdorim." });
+
+    await pool.query(`DELETE FROM departments WHERE id=:id`, { id });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Server error" });
+  }
+});
+
+// ---- USERS (admin + manager) ----
+app.post("/api/users", requireAnyRole(["admin", "manager"]), async (req, res) => {
+  try {
+    const meRole = req.user.role;
+
+    const username = String(req.body?.username || "").trim();
+    const password = String(req.body?.password || "").trim();
+    const fullName = String(req.body?.fullName || "").trim();
+
+    if (!username || !password || !fullName) {
+      return res.status(400).json({ error: "Plotëso fullName, username, password." });
+    }
+    if (password.length < 6) return res.status(400).json({ error: "Password shumë i shkurtër (min 6)." });
+
+    let role = "user";
+    let departmentId = null;
+
+    if (meRole === "admin") {
+      const roleRaw = String(req.body?.role || "user").trim();
+      role = roleRaw === "admin" || roleRaw === "manager" || roleRaw === "user" ? roleRaw : "user";
+
+      const departmentIdRaw = req.body?.departmentId;
+      departmentId =
+        departmentIdRaw === null || departmentIdRaw === undefined ? null : String(departmentIdRaw).trim();
+
+      if ((role === "user" || role === "manager") && !departmentId) {
+        return res.status(400).json({ error: "Zgjidh department." });
+      }
+    } else {
+      role = "user";
+      departmentId = req.user.departmentId || null;
+      if (!departmentId) return res.status(400).json({ error: "Manageri s’ka department." });
+    }
+
+    if (departmentId) {
+      const [depExists] = await pool.query(`SELECT 1 FROM departments WHERE id=:id LIMIT 1`, { id: departmentId });
+      if (!depExists.length) return res.status(400).json({ error: "Department i pavlefshëm." });
+    }
+
+    const [exists] = await pool.query(`SELECT 1 FROM users WHERE LOWER(username)=LOWER(:username) LIMIT 1`, { username });
+    if (exists.length) return res.status(409).json({ error: "Username ekziston." });
+
+    const id = uuid();
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      `
+      INSERT INTO users (id, username, password_hash, role, full_name, department_id)
+      VALUES (:id, :username, :passwordHash, :role, :fullName, :departmentId)
+      `,
+      {
+        id,
+        username,
+        passwordHash,
+        role,
+        fullName,
+        departmentId: role === "admin" ? null : departmentId,
+      }
+    );
+
+    return res.status(201).json({
+      user: { id, username, role, fullName, departmentId: role === "admin" ? null : departmentId },
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Server error" });
+  }
+});
+
+app.get("/api/users", requireAnyRole(["admin", "manager"]), async (req, res) => {
+  try {
+    if (req.user.role === "manager") {
+      const dep = req.user.departmentId || "__none__";
+      const [rows] = await pool.query(
+        `
+        SELECT u.id, u.username, u.role, u.full_name, u.created_at, u.department_id, d.name AS department_name
+        FROM users u
+        LEFT JOIN departments d ON d.id = u.department_id
+        WHERE u.role='user' AND u.department_id = :dep
+        ORDER BY u.created_at DESC
+        `,
+        { dep }
+      );
+
+      return res.json({
+        users: rows.map((u) => ({
+          id: u.id,
+          username: u.username,
+          role: normRole(u.role),
+          fullName: u.full_name,
+          createdAt: new Date(u.created_at).toISOString(),
+          departmentId: u.department_id || null,
+          departmentName: u.department_name || null,
+        })),
+      });
+    }
+
+    const [rows] = await pool.query(
+      `
+      SELECT u.id, u.username, u.role, u.full_name, u.created_at, u.department_id, d.name AS department_name
+      FROM users u
+      LEFT JOIN departments d ON d.id = u.department_id
+      ORDER BY u.created_at DESC
+      `
+    );
+
+    return res.json({
+      users: rows.map((u) => ({
+        id: u.id,
+        username: u.username,
+        role: normRole(u.role),
+        fullName: u.full_name,
+        createdAt: new Date(u.created_at).toISOString(),
+        departmentId: u.department_id || null,
+        departmentName: u.department_name || null,
+      })),
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Server error" });
+  }
+});
+
+app.put("/api/users/:id", requireAnyRole(["admin", "manager"]), async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing id." });
+
     const username = String(req.body?.username || "").trim();
     const fullName = String(req.body?.fullName || "").trim();
     const password = String(req.body?.password || "").trim();
 
-    if (!id) return res.status(400).json({ error: "Missing id." });
     if (!username || !fullName) return res.status(400).json({ error: "Plotëso fullName, username." });
 
-    const [exists] = await pool.query(
-      `SELECT 1 FROM users WHERE id = :id AND role='user' LIMIT 1`,
-      { id }
-    );
-    if (!exists.length) return res.status(404).json({ error: "Not found" });
+    const [curRows] = await pool.query(`SELECT role, department_id FROM users WHERE id=:id LIMIT 1`, { id });
+    if (!curRows.length) return res.status(404).json({ error: "Not found" });
+
+    const curRole = normRole(curRows[0].role);
+    const curDep = curRows[0].department_id || null;
+
+    if (curRole === "admin") return res.status(403).json({ error: "Nuk lejohet edit i admin-it këtu." });
+
+    if (req.user.role === "manager") {
+      if (curRole !== "user") return res.status(403).json({ error: "Forbidden" });
+      if ((req.user.departmentId || null) !== (curDep || null)) return res.status(403).json({ error: "Forbidden" });
+
+      const [dup] = await pool.query(
+        `SELECT 1 FROM users WHERE LOWER(username)=LOWER(:username) AND id <> :id LIMIT 1`,
+        { username, id }
+      );
+      if (dup.length) return res.status(409).json({ error: "Username ekziston." });
+
+      if (password && password.length < 6) return res.status(400).json({ error: "Password shumë i shkurtër (min 6)." });
+
+      if (password) {
+        const passwordHash = await bcrypt.hash(password, 10);
+        await pool.query(
+          `
+          UPDATE users
+          SET username=:username,
+              full_name=:fullName,
+              password_hash=:passwordHash
+          WHERE id=:id AND role='user'
+          `,
+          { id, username, fullName, passwordHash }
+        );
+      } else {
+        await pool.query(
+          `
+          UPDATE users
+          SET username=:username,
+              full_name=:fullName
+          WHERE id=:id AND role='user'
+          `,
+          { id, username, fullName }
+        );
+      }
+
+      return res.json({ ok: true });
+    }
+
+    const roleRaw = req.body?.role ? String(req.body.role).trim() : null;
+    const nextRole = roleRaw === "manager" || roleRaw === "user" ? roleRaw : null;
+
+    const departmentIdRaw = req.body?.departmentId;
+    const departmentId =
+      departmentIdRaw === undefined ? undefined : departmentIdRaw === null ? null : String(departmentIdRaw).trim();
+
+    const finalRole = nextRole || curRole;
+    const finalDepartmentId = departmentId === undefined ? curDep : departmentId;
+
+    if ((finalRole === "user" || finalRole === "manager") && !finalDepartmentId) {
+      return res.status(400).json({ error: "Zgjidh department." });
+    }
+
+    if (finalDepartmentId) {
+      const [depExists] = await pool.query(`SELECT 1 FROM departments WHERE id=:id LIMIT 1`, { id: finalDepartmentId });
+      if (!depExists.length) return res.status(400).json({ error: "Department i pavlefshëm." });
+    }
 
     const [dup] = await pool.query(
       `SELECT 1 FROM users WHERE LOWER(username)=LOWER(:username) AND id <> :id LIMIT 1`,
@@ -267,28 +506,33 @@ app.put("/api/users/:id", requireAuth("admin"), async (req, res) => {
     );
     if (dup.length) return res.status(409).json({ error: "Username ekziston." });
 
-    if (password && password.length < 6) {
-      return res.status(400).json({ error: "Password shumë i shkurtër (min 6)." });
-    }
+    if (password && password.length < 6) return res.status(400).json({ error: "Password shumë i shkurtër (min 6)." });
 
     if (password) {
       const passwordHash = await bcrypt.hash(password, 10);
       await pool.query(
         `
         UPDATE users
-        SET username=:username, full_name=:fullName, password_hash=:passwordHash, updated_at=NOW()
-        WHERE id=:id AND role='user'
+        SET username=:username,
+            full_name=:fullName,
+            password_hash=:passwordHash,
+            role=:role,
+            department_id=:departmentId
+        WHERE id=:id AND role IN ('user','manager')
         `,
-        { id, username, fullName, passwordHash }
+        { id, username, fullName, passwordHash, role: finalRole, departmentId: finalDepartmentId }
       );
     } else {
       await pool.query(
         `
         UPDATE users
-        SET username=:username, full_name=:fullName, updated_at=NOW()
-        WHERE id=:id AND role='user'
+        SET username=:username,
+            full_name=:fullName,
+            role=:role,
+            department_id=:departmentId
+        WHERE id=:id AND role IN ('user','manager')
         `,
-        { id, username, fullName }
+        { id, username, fullName, role: finalRole, departmentId: finalDepartmentId }
       );
     }
 
@@ -298,18 +542,30 @@ app.put("/api/users/:id", requireAuth("admin"), async (req, res) => {
   }
 });
 
-app.delete("/api/users/:id", requireAuth("admin"), async (req, res) => {
+app.delete("/api/users/:id", requireAnyRole(["admin", "manager"]), async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing id." });
 
+    if (req.user.role === "manager") {
+      const [rows] = await pool.query(`SELECT role, department_id FROM users WHERE id=:id LIMIT 1`, { id });
+      if (!rows.length) return res.status(404).json({ error: "Not found" });
+
+      const r = rows[0];
+      if (normRole(r.role) !== "user") return res.status(403).json({ error: "Forbidden" });
+      if ((r.department_id || null) !== (req.user.departmentId || null)) return res.status(403).json({ error: "Forbidden" });
+
+      await pool.query(`DELETE FROM users WHERE id=:id AND role='user'`, { id });
+      return res.json({ ok: true });
+    }
+
     const [exists] = await pool.query(
-      `SELECT 1 FROM users WHERE id = :id AND role='user' LIMIT 1`,
+      `SELECT 1 FROM users WHERE id = :id AND role IN ('user','manager') LIMIT 1`,
       { id }
     );
     if (!exists.length) return res.status(404).json({ error: "Not found" });
 
-    await pool.query(`DELETE FROM users WHERE id=:id AND role='user'`, { id });
+    await pool.query(`DELETE FROM users WHERE id=:id AND role IN ('user','manager')`, { id });
     return res.json({ ok: true });
   } catch (e) {
     return res.status(500).json({ error: e?.message || "Server error" });
@@ -317,25 +573,37 @@ app.delete("/api/users/:id", requireAuth("admin"), async (req, res) => {
 });
 
 // ---- REPORTS ----
-app.post("/api/reports", requireAuth("user"), async (req, res) => {
+app.post("/api/reports", requireAnyRole(["user", "manager"]), async (req, res) => {
   try {
-    const department = String(req.body?.department || "").trim() || null;
-    const reason = String(req.body?.reason || "").trim();
     const date = String(req.body?.date || "").trim(); // YYYY-MM-DD
-    const timeLeft = String(req.body?.timeLeft || "").trim(); // HH:MM
 
-    if (!reason || !date || !timeLeft) {
-      return res.status(400).json({ error: "Plotëso reason, date, timeLeft." });
-    }
+    // new fields
+    const reasonChoice = String(req.body?.reasonChoice || "").trim();
+    const reasonText = String(req.body?.reasonText || "").trim();
+    const timeOut = String(req.body?.timeOut || req.body?.timeLeft || "").trim(); // HH:MM (fallback legacy)
+    const timeReturn = String(req.body?.timeReturn || "").trim(); // HH:MM
+
+    if (!reasonChoice || !date || !timeOut || !timeReturn)
+      return res.status(400).json({ error: "Plotëso reasonChoice, date, timeOut, timeReturn." });
 
     const id = uuid();
 
     await pool.query(
       `
-      INSERT INTO reports (id, user_id, department, reason, report_date, time_left, status)
-      VALUES (:id, :userId, :department, :reason, :date, :timeLeft, 'submitted')
+      INSERT INTO reports (id, user_id, department_id, reason, reason_choice, reason_text, report_date, time_left, time_out, time_return, status)
+      VALUES (:id, :userId, :departmentId, :reason, :reasonChoice, :reasonText, :date, :timeOut, :timeOut, :timeReturn, 'submitted')
       `,
-      { id, userId: req.user.id, department, reason, date, timeLeft }
+      {
+        id,
+        userId: req.user.id,
+        departmentId: req.user.departmentId || null,
+        reason: reasonChoice, // legacy
+        reasonChoice,
+        reasonText,
+        date,
+        timeOut,
+        timeReturn,
+      }
     );
 
     return res.status(201).json({ ok: true });
@@ -346,40 +614,72 @@ app.post("/api/reports", requireAuth("user"), async (req, res) => {
 
 app.get("/api/reports", requireAuth(), async (req, res) => {
   try {
-    const isAdmin = req.user.role === "admin";
+    const role = req.user.role;
 
-    const sql = isAdmin
-      ? `
-        SELECT r.id, r.user_id, u.full_name, r.department, r.reason,
+    let sql = "";
+    let params = {};
+
+    const baseSelect = `
+        SELECT r.id, r.user_id, u.full_name, u.username, u.role as user_role,
+               r.department_id, d.name AS department_name,
+               r.reason,
+               r.reason_choice,
+               r.reason_text,
                DATE_FORMAT(r.report_date, '%Y-%m-%d') AS report_date,
-               TIME_FORMAT(r.time_left, '%H:%i') AS time_left,
+               TIME_FORMAT(COALESCE(r.time_out, r.time_left), '%H:%i') AS time_out,
+               TIME_FORMAT(r.time_return, '%H:%i') AS time_return,
+               TIME_FORMAT(COALESCE(r.time_out, r.time_left), '%H:%i') AS time_left,
                r.status, r.created_at, r.reviewed_at, r.reviewed_by
         FROM reports r
         JOIN users u ON u.id = r.user_id
+        LEFT JOIN departments d ON d.id = r.department_id
+    `;
+
+    if (role === "admin") {
+      sql = `
+        ${baseSelect}
         ORDER BY r.created_at DESC
-      `
-      : `
-        SELECT r.id, r.user_id, u.full_name, r.department, r.reason,
-               DATE_FORMAT(r.report_date, '%Y-%m-%d') AS report_date,
-               TIME_FORMAT(r.time_left, '%H:%i') AS time_left,
-               r.status, r.created_at, r.reviewed_at, r.reviewed_by
-        FROM reports r
-        JOIN users u ON u.id = r.user_id
+      `;
+    } else if (role === "manager") {
+      sql = `
+        ${baseSelect}
+        WHERE r.department_id = :departmentId
+        ORDER BY r.created_at DESC
+      `;
+      params = { departmentId: req.user.departmentId || "__none__" };
+    } else {
+      sql = `
+        ${baseSelect}
         WHERE r.user_id = :userId
         ORDER BY r.created_at DESC
       `;
+      params = { userId: req.user.id };
+    }
 
-    const [rows] = isAdmin ? await pool.query(sql) : await pool.query(sql, { userId: req.user.id });
+    const [rows] = await pool.query(sql, params);
 
     return res.json({
       reports: rows.map((r) => ({
         id: r.id,
         userId: r.user_id,
         fullName: r.full_name,
-        department: r.department,
-        reason: r.reason,
+        username: r.username,
+        userRole: normRole(r.user_role),
+        departmentId: r.department_id || null,
+        departmentName: r.department_name || null,
+
+        // reasons
+        reason: r.reason, // legacy
+        reasonChoice: r.reason_choice || r.reason || null,
+        reasonText: r.reason_text || null,
+
         date: r.report_date,
-        timeLeft: r.time_left,
+
+        // times
+        timeLeft: r.time_left, // legacy
+        timeOut: r.time_out,
+        timeReturn: r.time_return,
+
         status: r.status,
         createdAt: new Date(r.created_at).toISOString(),
         reviewedAt: r.reviewed_at ? new Date(r.reviewed_at).toISOString() : null,
@@ -391,88 +691,50 @@ app.get("/api/reports", requireAuth(), async (req, res) => {
   }
 });
 
-app.put("/api/reports/:id", requireAuth("admin"), async (req, res) => {
+app.patch("/api/reports/:id/review", requireAnyRole(["admin", "manager"]), async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing id." });
 
-    const department = String(req.body?.department || "").trim() || null;
-    const reason = String(req.body?.reason || "").trim();
-    const date = String(req.body?.date || "").trim(); // YYYY-MM-DD
-    const timeLeft = String(req.body?.timeLeft || "").trim(); // HH:MM
-    const statusRaw = req.body?.status;
-    const status = statusRaw ? String(statusRaw).trim() : null;
-
-    if (!reason || !date || !timeLeft) {
-      return res.status(400).json({ error: "Plotëso reason, date, timeLeft." });
-    }
-
-    if (status && status !== "submitted" && status !== "reviewed") {
-      return res.status(400).json({ error: "Status i pavlefshëm." });
-    }
-
-    const [exists] = await pool.query(`SELECT 1 FROM reports WHERE id = :id LIMIT 1`, { id });
-    if (!exists.length) return res.status(404).json({ error: "Not found" });
-
-    if (!status) {
-      await pool.query(
-        `
-        UPDATE reports
-        SET department=:department, reason=:reason, report_date=:date, time_left=:timeLeft
-        WHERE id=:id
-        `,
-        { id, department, reason, date, timeLeft }
+    if (req.user.role === "manager") {
+      const [ok] = await pool.query(
+        `SELECT 1 FROM reports WHERE id=:id AND department_id=:dep LIMIT 1`,
+        { id, dep: req.user.departmentId || "__none__" }
       );
+      if (!ok.length) return res.status(404).json({ error: "Not found" });
     } else {
-      await pool.query(
-        `
-        UPDATE reports
-        SET department=:department,
-            reason=:reason,
-            report_date=:date,
-            time_left=:timeLeft,
-            status=:status,
-            reviewed_at = CASE WHEN :status='reviewed' THEN NOW() ELSE NULL END,
-            reviewed_by = CASE WHEN :status='reviewed' THEN :adminId ELSE NULL END
-        WHERE id=:id
-        `,
-        { id, department, reason, date, timeLeft, status, adminId: req.user.id }
-      );
+      const [exists] = await pool.query(`SELECT 1 FROM reports WHERE id=:id LIMIT 1`, { id });
+      if (!exists.length) return res.status(404).json({ error: "Not found" });
     }
-
-    return res.json({ ok: true });
-  } catch (e) {
-    return res.status(500).json({ error: e?.message || "Server error" });
-  }
-});
-
-app.delete("/api/reports/:id", requireAuth("admin"), async (req, res) => {
-  try {
-    const id = String(req.params.id || "").trim();
-    if (!id) return res.status(400).json({ error: "Missing id." });
-
-    const [exists] = await pool.query(`SELECT 1 FROM reports WHERE id = :id LIMIT 1`, { id });
-    if (!exists.length) return res.status(404).json({ error: "Not found" });
-
-    await pool.query(`DELETE FROM reports WHERE id=:id`, { id });
-    return res.json({ ok: true });
-  } catch (e) {
-    return res.status(500).json({ error: e?.message || "Server error" });
-  }
-});
-
-app.patch("/api/reports/:id/review", requireAuth("admin"), async (req, res) => {
-  try {
-    const id = req.params.id;
-
-    const [exists] = await pool.query(`SELECT 1 FROM reports WHERE id = :id LIMIT 1`, { id });
-    if (!exists.length) return res.status(404).json({ error: "Not found" });
 
     await pool.query(
       `UPDATE reports SET status='reviewed', reviewed_at=NOW(), reviewed_by=:adminId WHERE id=:id`,
       { id, adminId: req.user.id }
     );
 
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Server error" });
+  }
+});
+
+app.delete("/api/reports/:id", requireAnyRole(["admin", "manager"]), async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing id." });
+
+    if (req.user.role === "manager") {
+      const [ok] = await pool.query(
+        `SELECT 1 FROM reports WHERE id=:id AND department_id=:dep LIMIT 1`,
+        { id, dep: req.user.departmentId || "__none__" }
+      );
+      if (!ok.length) return res.status(404).json({ error: "Not found" });
+    } else {
+      const [exists] = await pool.query(`SELECT 1 FROM reports WHERE id=:id LIMIT 1`, { id });
+      if (!exists.length) return res.status(404).json({ error: "Not found" });
+    }
+
+    await pool.query(`DELETE FROM reports WHERE id=:id`, { id });
     return res.json({ ok: true });
   } catch (e) {
     return res.status(500).json({ error: e?.message || "Server error" });

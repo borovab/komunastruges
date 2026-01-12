@@ -95,9 +95,7 @@ export default function UserProfile() {
       {/* Header card */}
       <div style={card}>
         <div style={cardTop}>
-          <div style={avatar}>
-            {(fullName || user.fullName || "U").trim().slice(0, 1).toUpperCase()}
-          </div>
+          <div style={avatar}>{(fullName || user.fullName || "U").trim().slice(0, 1).toUpperCase()}</div>
 
           <div style={{ lineHeight: 1.2 }}>
             <div style={nameLine}>{fullName || user.fullName}</div>
@@ -158,17 +156,11 @@ export default function UserProfile() {
               </label>
             </div>
 
-            <button
-              type="submit"
-              disabled={saving}
-              style={cnBtn(saving)}
-            >
+            <button type="submit" disabled={saving} style={cnBtn(saving)}>
               {saving ? "Duke ruajtur..." : "Ruaj ndryshimet"}
             </button>
 
-            <div style={hint}>
-              Tip: Nëse s’do me e ndërru password-in, lëri dy fushat bosh.
-            </div>
+            <div style={hint}>Tip: Nëse s’do me e ndërru password-in, lëri dy fushat bosh.</div>
           </form>
         )}
       </div>
@@ -184,6 +176,7 @@ const head = {
   alignItems: "flex-start",
   gap: 12,
   marginBottom: 12,
+  flexWrap: "wrap",
 };
 
 const title = { margin: 0, fontSize: 18, fontWeight: 800, color: "#0f172a" };
@@ -197,6 +190,7 @@ const rolePill = {
   border: "1px solid #e2e8f0",
   background: "#f8fafc",
   color: "#0f172a",
+  alignSelf: "flex-start",
 };
 
 const card = {
@@ -208,7 +202,7 @@ const card = {
   marginTop: 12,
 };
 
-const cardTop = { display: "flex", alignItems: "center", gap: 12 };
+const cardTop = { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" };
 
 const avatar = {
   height: 44,
@@ -247,6 +241,8 @@ const inp = {
   outline: "none",
   fontSize: 14,
   color: "#0f172a",
+  width: "100%",
+  boxSizing: "border-box",
 };
 
 const grid2Form = {
@@ -265,6 +261,7 @@ const cnBtn = (disabled) => ({
   cursor: disabled ? "not-allowed" : "pointer",
   fontWeight: 800,
   fontSize: 14,
+  width: "100%",
 });
 
 const hint = { marginTop: 2, fontSize: 12, color: "#64748b" };
@@ -288,6 +285,38 @@ const okBox = {
   color: "#14532d",
   fontSize: 13,
 };
+
+/* ✅ RESPONSIVE (mobile) via injected CSS */
+if (typeof document !== "undefined" && !document.getElementById("user-profile-responsive-css")) {
+  const style = document.createElement("style");
+  style.id = "user-profile-responsive-css";
+  style.innerHTML = `
+    @media (max-width: 640px) {
+      .up-grid2 { grid-template-columns: 1fr !important; }
+      .up-grid2form { grid-template-columns: 1fr !important; }
+      .up-page { padding: 12px !important; }
+      .up-card { padding: 12px !important; border-radius: 16px !important; }
+      .up-inp { height: 36px !important; border-radius: 12px !important; font-size: 12px !important; padding: 0 10px !important; }
+      .up-btn { height: 38px !important; border-radius: 12px !important; font-size: 13px !important; }
+      .up-title { font-size: 16px !important; }
+      .up-sub { font-size: 12px !important; }
+      .up-role { font-size: 11px !important; padding: 5px 9px !important; }
+      .up-avatar { height: 40px !important; width: 40px !important; border-radius: 14px !important; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+/* attach responsive classNames by wrapping style objects */
+page.className = "up-page";
+card.className = "up-card";
+grid2.className = "up-grid2";
+grid2Form.className = "up-grid2form";
+title.className = "up-title";
+sub.className = "up-sub";
+rolePill.className = "up-role";
+avatar.className = "up-avatar";
+inp.className = "up-inp";
 
 function cnBtnDummy() {
   return "";

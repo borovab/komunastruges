@@ -1,6 +1,4 @@
-// src/pages/Admin/AdminReports/AdminReports.jsx
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { api } from "../../../lib/api";
 
 function cn(...a) {
@@ -9,24 +7,17 @@ function cn(...a) {
 
 function statusLabel(s) {
   const v = String(s || "").trim().toLowerCase();
-  // backend: submitted/reviewed — UI: pending/reviewed
   if (v === "submitted") return "pending";
   return v || "—";
 }
 
-export default function AdminReports() {
-  const navigate = useNavigate();
-
+export default function ManagerReports() {
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState("");
   const [okMsg, setOkMsg] = React.useState("");
   const [reports, setReports] = React.useState([]);
 
-  // departments filter
-  const [departments, setDepartments] = React.useState([]);
-  const [depId, setDepId] = React.useState("all"); // "all" | departmentId
-
-  const [open, setOpen] = React.useState(null); // report object
+  const [open, setOpen] = React.useState(null);
   const [acting, setActing] = React.useState(false);
 
   const load = async () => {
@@ -34,9 +25,8 @@ export default function AdminReports() {
     setErr("");
     setOkMsg("");
     try {
-      const [res, deps] = await Promise.all([api.listReports(), api.listDepartments()]);
+      const res = await api.listReports(); // backend e filtron per departamentin e manager-it
       setReports(res?.reports || []);
-      setDepartments(deps?.departments || []);
     } catch (e) {
       setErr(e?.message || "Gabim");
     } finally {
@@ -59,23 +49,6 @@ export default function AdminReports() {
     setActing(false);
   };
 
-  const deleteReport = async (id) => {
-    if (!window.confirm("A je i sigurt që do ta fshish këtë raportim?")) return;
-
-    setErr("");
-    setOkMsg("");
-    setActing(true);
-    try {
-      await api.deleteReport(id);
-      setOkMsg("Raportimi u fshi.");
-      closeDetails();
-      await load();
-    } catch (e) {
-      setErr(e?.message || "Gabim");
-      setActing(false);
-    }
-  };
-
   const markReviewed = async (id) => {
     setErr("");
     setOkMsg("");
@@ -91,49 +64,23 @@ export default function AdminReports() {
     }
   };
 
-  const filteredReports =
-    depId === "all"
-      ? reports
-      : reports.filter((r) => String(r.departmentId || "").trim() === String(depId).trim());
-
-  const depNameById = React.useMemo(() => {
-    const m = new Map();
-    for (const d of departments) m.set(String(d.id), d.name);
-    return m;
-  }, [departments]);
-
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-5">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Admin • Raportimet</h2>
-          <p className="text-sm text-slate-500 mt-1">Shfaq të gjitha raportimet (Excel list).</p>
+          <h2 className="text-lg font-bold text-slate-900">Manager • Raportimet</h2>
+          <p className="text-sm text-slate-500 mt-1">Shfaq raportimet e punëtorëve të departamentit tënd.</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={load}
-            className="h-10 px-4 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
-          >
-            Rifresko
-          </button>
-
-          <button
-            type="button"
-            className="h-10 px-4 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 transition text-sm font-semibold"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/admin", { replace: true });
-            }}
-          >
-            Paneli
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={load}
+          className="h-10 px-4 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
+        >
+          Rifresko
+        </button>
       </div>
 
-      {/* Alerts */}
       {err ? (
         <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {err}
@@ -146,30 +93,6 @@ export default function AdminReports() {
         </div>
       ) : null}
 
-      {/* Filter row */}
-      <div className="mb-3 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-        <div className="text-sm text-slate-600">
-          {depId === "all" ? "Të gjitha departamentet" : `Departamenti: ${depNameById.get(String(depId)) || "—"}`}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-semibold text-slate-600">Filtro:</label>
-          <select
-            value={depId}
-            onChange={(e) => setDepId(e.target.value)}
-            className="h-10 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-          >
-            <option value="all">Të gjitha</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* List card */}
       <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -178,20 +101,15 @@ export default function AdminReports() {
             </span>
             <div className="leading-tight">
               <div className="text-sm font-semibold text-slate-900">Lista e raportimeve</div>
-              <div className="text-[12px] text-slate-500">
-                {filteredReports.length} raportime{depId === "all" ? "" : " (filtruar)"}
-              </div>
+              <div className="text-[12px] text-slate-500">{reports.length} raportime</div>
             </div>
           </div>
 
           {loading ? <div className="text-sm text-slate-500">Loading…</div> : null}
         </div>
 
-        {!loading && filteredReports.length === 0 ? (
-          <div className="p-6 text-sm text-slate-500">S’ka raportime.</div>
-        ) : null}
+        {!loading && reports.length === 0 ? <div className="p-6 text-sm text-slate-500">S’ka raportime.</div> : null}
 
-        {/* EXCEL LIST (vetëm kjo) */}
         <div className="overflow-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50">
@@ -209,7 +127,7 @@ export default function AdminReports() {
             </thead>
 
             <tbody className="divide-y divide-slate-200">
-              {filteredReports.map((r, idx) => (
+              {reports.map((r, idx) => (
                 <tr
                   key={r.id}
                   onClick={() => openDetails(r)}
@@ -224,9 +142,7 @@ export default function AdminReports() {
                     <div className="truncate max-w-[360px]">{r.reason || "—"}</div>
                   </td>
                   <td className="px-4 py-3 text-slate-700">{statusLabel(r.status)}</td>
-                  <td className="px-4 py-3 text-slate-700">
-                    {r.department || depNameById.get(String(r.departmentId)) || "—"}
-                  </td>
+                  <td className="px-4 py-3 text-slate-700">{r.department || r.departmentName || "—"}</td>
                   <td className="px-4 py-3 text-slate-500">
                     {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
                   </td>
@@ -261,7 +177,6 @@ export default function AdminReports() {
         </div>
       </div>
 
-      {/* Details Modal */}
       {open ? (
         <div className="fixed inset-0 z-[999]">
           <div className="absolute inset-0 bg-black/40" onClick={closeDetails} />
@@ -270,10 +185,7 @@ export default function AdminReports() {
               <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-slate-900 truncate">
-                    {open.fullName || "—"} •{" "}
-                    {open.department ||
-                      depNameById.get(String(open.departmentId)) ||
-                      "—"}
+                    {open.fullName || "—"} • {open.department || open.departmentName || "—"}
                   </div>
                   <div className="text-[12px] text-slate-500 truncate">
                     {open.createdAt ? new Date(open.createdAt).toLocaleString() : "—"} • Status:{" "}
@@ -308,7 +220,7 @@ export default function AdminReports() {
                   <div className="rounded-2xl border border-slate-200 p-4">
                     <div className="text-[11px] text-slate-500">Departamenti</div>
                     <div className="text-sm font-semibold text-slate-900 mt-1">
-                      {open.department || depNameById.get(String(open.departmentId)) || "—"}
+                      {open.department || open.departmentName || "—"}
                     </div>
                   </div>
 
@@ -325,9 +237,7 @@ export default function AdminReports() {
 
                 <div className="rounded-2xl border border-slate-200 p-4">
                   <div className="text-[11px] text-slate-500">Arsye</div>
-                  <div className="text-sm text-slate-900 mt-2 whitespace-pre-wrap break-words">
-                    {open.reason || "—"}
-                  </div>
+                  <div className="text-sm text-slate-900 mt-2 whitespace-pre-wrap break-words">{open.reason || "—"}</div>
                 </div>
               </div>
 
@@ -354,20 +264,6 @@ export default function AdminReports() {
                     {acting ? "..." : "Verifikoje"}
                   </button>
                 ) : null}
-
-                <button
-                  type="button"
-                  onClick={() => deleteReport(open.id)}
-                  className={cn(
-                    "h-11 px-5 rounded-2xl border transition text-sm font-semibold",
-                    acting
-                      ? "border-red-200 bg-red-50 text-red-700/70 cursor-not-allowed"
-                      : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                  )}
-                  disabled={acting}
-                >
-                  Fshi
-                </button>
               </div>
             </div>
           </div>

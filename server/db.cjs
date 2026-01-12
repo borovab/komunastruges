@@ -1,4 +1,4 @@
-
+// server/db.cjs
 const mysql = require("mysql2/promise");
 
 function mustEnv(name, fallback) {

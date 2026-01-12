@@ -15,6 +15,10 @@ export default function AdminWorkers() {
   const [okMsg, setOkMsg] = React.useState("");
   const [users, setUsers] = React.useState([]);
 
+  // departments filter
+  const [departments, setDepartments] = React.useState([]);
+  const [depId, setDepId] = React.useState("all"); // "all" | departmentId
+
   // edit modal
   const [editing, setEditing] = React.useState(null); // user object
   const [eFullName, setEFullName] = React.useState("");
@@ -27,8 +31,9 @@ export default function AdminWorkers() {
     setErr("");
     setOkMsg("");
     try {
-      const u = await api.listUsers();
-      setUsers((u.users || []).filter((x) => x.role === "user"));
+      const [u, deps] = await Promise.all([api.listUsers(), api.listDepartments()]);
+      setUsers(u.users || []);
+      setDepartments(deps.departments || []);
     } catch (e) {
       setErr(e?.message || "Gabim");
     } finally {
@@ -39,6 +44,17 @@ export default function AdminWorkers() {
   React.useEffect(() => {
     load();
   }, []);
+
+  const depNameById = React.useMemo(() => {
+    const m = new Map();
+    for (const d of departments) m.set(String(d.id), d.name);
+    return m;
+  }, [departments]);
+
+  const filteredUsers =
+    depId === "all"
+      ? users
+      : users.filter((u) => String(u.departmentId || "").trim() === String(depId).trim());
 
   const openEdit = (u) => {
     setEditing(u);
@@ -136,6 +152,31 @@ export default function AdminWorkers() {
         </div>
       ) : null}
 
+      {/* Filter row */}
+      <div className="mb-3 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+        <div className="text-sm text-slate-600">
+          {depId === "all"
+            ? "Të gjitha departamentet"
+            : `Departamenti: ${depNameById.get(String(depId)) || "—"}`}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold text-slate-600">Filtro:</label>
+          <select
+            value={depId}
+            onChange={(e) => setDepId(e.target.value)}
+            className="h-10 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+          >
+            <option value="all">Të gjitha</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* List card */}
       <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
@@ -144,20 +185,22 @@ export default function AdminWorkers() {
               U
             </span>
             <div className="leading-tight">
-              <div className="text-sm font-semibold text-slate-900">Lista e punëtorëve</div>
-              <div className="text-[12px] text-slate-500">{users.length} punëtorë</div>
+              <div className="text-sm font-semibold text-slate-900">Lista e përdoruesve</div>
+              <div className="text-[12px] text-slate-500">
+                {filteredUsers.length} përdorues{depId === "all" ? "" : " (filtruar)"}
+              </div>
             </div>
           </div>
 
           {loading ? <div className="text-sm text-slate-500">Loading…</div> : null}
         </div>
 
-        {!loading && users.length === 0 ? (
-          <div className="p-6 text-sm text-slate-500">S’ka punëtorë.</div>
+        {!loading && filteredUsers.length === 0 ? (
+          <div className="p-6 text-sm text-slate-500">S’ka përdorues.</div>
         ) : null}
 
         <div className="divide-y divide-slate-200">
-          {users.map((u) => (
+          {filteredUsers.map((u) => (
             <div key={u.id} className="px-5 py-4 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -172,7 +215,30 @@ export default function AdminWorkers() {
 
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-slate-900 truncate">{u.fullName || "-"}</div>
-                    <div className="text-[12px] text-slate-500 truncate">@{u.username || "-"}</div>
+
+                    <div className="text-[12px] text-slate-500 truncate flex flex-wrap items-center gap-2">
+                      <span>@{u.username || "-"}</span>
+
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full text-[11px] font-semibold border",
+                          (u.role || "").toLowerCase() === "admin" &&
+                            "bg-rose-50 text-rose-700 border-rose-200",
+                          (u.role || "").toLowerCase() === "manager" &&
+                            "bg-amber-50 text-amber-800 border-amber-200",
+                          (u.role || "").toLowerCase() === "user" &&
+                            "bg-slate-50 text-slate-700 border-slate-200"
+                        )}
+                      >
+                        {(u.role || "user").toLowerCase()}
+                      </span>
+
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
+                        {u.departmentName ||
+                          (u.departmentId ? depNameById.get(String(u.departmentId)) : null) ||
+                          "pa department"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -211,8 +277,31 @@ export default function AdminWorkers() {
             <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white shadow-xl overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">Ndrysho punëtorin</div>
-                  <div className="text-[12px] text-slate-500">@{editing.username}</div>
+                  <div className="text-sm font-semibold text-slate-900">Ndrysho përdoruesin</div>
+
+                  <div className="text-[12px] text-slate-500 flex flex-wrap items-center gap-2">
+                    <span>@{editing.username}</span>
+
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-[11px] font-semibold border",
+                        (editing.role || "").toLowerCase() === "admin" &&
+                          "bg-rose-50 text-rose-700 border-rose-200",
+                        (editing.role || "").toLowerCase() === "manager" &&
+                          "bg-amber-50 text-amber-800 border-amber-200",
+                        (editing.role || "").toLowerCase() === "user" &&
+                          "bg-slate-50 text-slate-700 border-slate-200"
+                      )}
+                    >
+                      {(editing.role || "user").toLowerCase()}
+                    </span>
+
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
+                      {editing.departmentName ||
+                        (editing.departmentId ? depNameById.get(String(editing.departmentId)) : null) ||
+                        "pa department"}
+                    </span>
+                  </div>
                 </div>
 
                 <button
@@ -265,9 +354,7 @@ export default function AdminWorkers() {
                     placeholder="••••••••"
                     autoComplete="new-password"
                   />
-                  <p className="mt-2 text-[11px] text-slate-500">
-                    Nëse e lë bosh, password-i nuk ndryshohet.
-                  </p>
+                  <p className="mt-2 text-[11px] text-slate-500">Nëse e lë bosh, password-i nuk ndryshohet.</p>
                 </div>
               </div>
 

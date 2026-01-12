@@ -11,15 +11,29 @@ import PublicLayout from "./layouts/PublicLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import UserLayout from "./layouts/UserLayout";
 
+// ✅ MANAGER
+import ManagerLayout from "./layouts/ManagerLayout";
+import ManagerDashboard from "./pages/Manager/ManagerDashboard/ManagerDashboard.jsx";
+import ManagerProfile from "./pages/Manager/ManagerProfile/ManagerProfile.jsx";
+import ManagerWorkers from "./pages/Manager/ManagerWorkers/ManagerWorkers.jsx";
+import ManagerAddUser from "./pages/Manager/ManagerAddUser/ManagerAddUser.jsx";
+import ManagerReports from "./pages/Manager/ManagerReports/ManagerReports.jsx";
+
 import AdminProfile from "./pages/Admin/AdminProfile/AdminProfile.jsx";
 import AdminReports from "./pages/Admin/AdminReports/AdminReports.jsx";
 
+// ✅ ADMIN DEPARTMENTS
+import AdminDepartments from "./pages/Admin/AdminDepartments/AdminDepartments.jsx";
+
 function RootRedirect() {
   const session = getSession();
+  const role = String(session?.user?.role || "").trim().toLowerCase();
 
-  return session?.user?.role === "admin" ? (
+  return role === "admin" ? (
     <Navigate to="/admin" replace />
-  ) : session?.user?.role === "user" ? (
+  ) : role === "manager" ? (
+    <Navigate to="/manager" replace />
+  ) : role === "user" ? (
     <Navigate to="/user" replace />
   ) : (
     <Navigate to="/login" replace />
@@ -47,6 +61,22 @@ export default function App() {
         <Route path="profile" element={<UserProfile />} />
       </Route>
 
+      {/* MANAGER */}
+      <Route
+        path="/manager"
+        element={
+          <ProtectedRoute role="manager">
+            <ManagerLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<ManagerDashboard />} />
+        <Route path="profile" element={<ManagerProfile />} />
+        <Route path="workers" element={<ManagerWorkers />} />
+        <Route path="add-user" element={<ManagerAddUser />} />
+        <Route path="raportimet" element={<ManagerReports />} />
+      </Route>
+
       {/* ADMIN */}
       <Route
         path="/admin"
@@ -61,6 +91,7 @@ export default function App() {
         <Route path="workers" element={<AdminWorkers />} />
         <Route path="add-user" element={<AdminAddUser />} />
         <Route path="raportimet" element={<AdminReports />} />
+        <Route path="departments" element={<AdminDepartments />} />
       </Route>
 
       {/* ROOT */}

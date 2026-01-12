@@ -22,7 +22,7 @@ export default function AdminDashboard() {
     setLoading(true);
     setErr("");
     try {
-      const [r, u] = await Promise.all([api.getReports(), api.listUsers()]);
+      const [r, u] = await Promise.all([api.listReports(), api.listUsers()]);
       setReports(r.reports || []);
       setUsers(u.users || []);
     } catch (e) {

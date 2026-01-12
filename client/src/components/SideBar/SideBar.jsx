@@ -40,7 +40,9 @@ export default function Sidebar({ className = "" }) {
   const navigate = useNavigate();
   const location = useLocation();
   const s = getSession();
-  const role = s?.user?.role;
+
+  // ✅ FIX: normalize role (handles "Manager", " manager ", etc.)
+  const role = String(s?.user?.role || "").trim().toLowerCase();
 
   const fullName = s?.user?.fullName || "User";
   const username = s?.user?.username || "";
@@ -76,11 +78,7 @@ export default function Sidebar({ className = "" }) {
             path: "/admin/raportimet",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-                <path
-                  d="M7 3h10v18H7V3Z"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                />
+                <path d="M7 3h10v18H7V3Z" stroke="currentColor" strokeWidth="1.6" />
                 <path
                   d="M9 7h6M9 11h6M9 15h6"
                   stroke="currentColor"
@@ -90,6 +88,28 @@ export default function Sidebar({ className = "" }) {
               </svg>
             ),
           },
+
+          // ✅ NEW: Departamentet
+          {
+            label: "Departamentet",
+            path: "/admin/departments",
+            icon: (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path
+                  d="M4 8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8Z"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+                <path
+                  d="M8 9h8M8 12h8M8 15h5"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ),
+          },
+
           {
             label: "Punëtorët",
             path: "/admin/workers",
@@ -119,6 +139,65 @@ export default function Sidebar({ className = "" }) {
             ),
           },
         ]
+      : role === "manager"
+      ? [
+          {
+            label: "Paneli",
+            path: "/manager",
+            icon: (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path
+                  d="M4 13h7V4H4v9Zm9 7h7V11h-7v9ZM4 20h7v-5H4v5Zm9-18v7h7V2h-7Z"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+              </svg>
+            ),
+          },
+          {
+            label: "Raportimet",
+            path: "/manager/raportimet",
+            icon: (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path d="M7 3h10v18H7V3Z" stroke="currentColor" strokeWidth="1.6" />
+                <path
+                  d="M9 7h6M9 11h6M9 15h6"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ),
+          },
+          {
+            label: "Punëtorët",
+            path: "/manager/workers",
+            icon: (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path
+                  d="M16 11a4 4 0 1 0-8 0m13 10a7 7 0 1 0-14 0"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ),
+          },
+            {
+            label: "Shto Punëtorë",
+            path: "/manager/add-user",
+            icon: (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path
+                  d="M16 11a4 4 0 1 0-8 0m13 10a7 7 0 1 0-14 0"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ),
+          },
+        ]
       : role === "user"
       ? [
           {
@@ -139,24 +218,14 @@ export default function Sidebar({ className = "" }) {
         ]
       : [];
 
-  // ✅ REPLACED: Settings -> Profili im
   const bottomLinks = [
     {
       label: "Profili im",
-      path: role === "admin" ? "/admin/profile" : "/user/profile",
+      path: role === "admin" ? "/admin/profile" : role === "manager" ? "/manager/profile" : "/user/profile",
       icon: (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-          <path
-            d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
-            stroke="currentColor"
-            strokeWidth="1.6"
-          />
-          <path
-            d="M20 21a8 8 0 0 0-16 0"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-          />
+          <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         </svg>
       ),
     },
@@ -167,18 +236,16 @@ export default function Sidebar({ className = "" }) {
   return (
     <aside className={cn("h-screen w-[280px] p-3", className)}>
       <div className="h-full rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden">
-        {/* TOP: Logo + user name (moved from bottom) */}
+        {/* TOP: Logo + user name */}
         <div className="px-4 pt-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-2xl  grid place-items-center shadow-sm overflow-hidden shrink-0">
+            <div className="h-10 w-10 rounded-2xl grid place-items-center shadow-sm overflow-hidden shrink-0">
               <img src={logo} alt="Logo" className="h-7 w-7 object-contain" draggable="false" />
             </div>
 
             <div className="leading-tight min-w-0">
               <div className="text-sm font-semibold text-slate-800 truncate">{fullName}</div>
-              <div className="text-[11px] text-slate-500 truncate">
-                @{username || "user"} • Raportimi i punës
-              </div>
+              <div className="text-[11px] text-slate-500 truncate">@{username || "user"} • Raportimi i punës</div>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-
+// server/auth.cjs
 const crypto = require("node:crypto");
 
 function uuid() {
