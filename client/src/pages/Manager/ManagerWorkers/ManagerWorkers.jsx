@@ -119,57 +119,67 @@ export default function ManagerWorkers() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      <div className="flex items-start justify-between gap-3 mb-5">
+    <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Manager • Punëtorët</h2>
-          <p className="text-sm text-slate-500 mt-1">Këtu shfaqen vetëm punëtorët e departamentit tënd.</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">Manager • Punëtorët</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">
+            Këtu shfaqen vetëm punëtorët e departamentit tënd.
+          </p>
         </div>
 
         <button
           type="button"
           onClick={load}
-          className="h-10 px-4 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
+          className="h-10 w-full sm:w-auto px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
         >
           Rifresko
         </button>
       </div>
 
+      {/* Alerts */}
       {err ? (
-        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-[13px] text-red-700">
           {err}
         </div>
       ) : null}
 
       {okMsg ? (
-        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[13px] text-emerald-800">
           {okMsg}
         </div>
       ) : null}
 
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="h-9 w-9 rounded-2xl bg-blue-600 text-white grid place-items-center font-extrabold">U</span>
-            <div className="leading-tight">
-              <div className="text-sm font-semibold text-slate-900">Lista e punëtorëve</div>
-              <div className="text-[12px] text-slate-500">{users.length} punëtorë</div>
+      {/* List card */}
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="px-3 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl sm:rounded-2xl bg-blue-600 text-white grid place-items-center font-extrabold">
+              U
+            </span>
+            <div className="leading-tight min-w-0">
+              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Lista e punëtorëve</div>
+              <div className="text-[11px] sm:text-[12px] text-slate-500">{users.length} punëtorë</div>
             </div>
           </div>
 
-          {loading ? <div className="text-sm text-slate-500">Loading…</div> : null}
+          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">Loading…</div> : null}
         </div>
 
         {!loading && users.length === 0 ? (
-          <div className="p-6 text-sm text-slate-500">S’ka punëtorë në departament.</div>
+          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">S’ka punëtorë në departament.</div>
         ) : null}
 
         <div className="divide-y divide-slate-200">
           {users.map((u) => (
-            <div key={u.id} className="px-5 py-4 flex items-center justify-between gap-3">
+            <div
+              key={u.id}
+              className="px-3 sm:px-5 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <div className="h-9 w-9 rounded-2xl bg-slate-100 border border-slate-200 grid place-items-center text-slate-700 font-bold">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl sm:rounded-2xl bg-slate-100 border border-slate-200 grid place-items-center text-slate-700 font-bold text-[12px] sm:text-sm">
                     {(u.fullName || "U")
                       .trim()
                       .split(/\s+/)
@@ -179,22 +189,25 @@ export default function ManagerWorkers() {
                   </div>
 
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 truncate">{u.fullName || "-"}</div>
-                    <div className="text-[12px] text-slate-500 truncate flex items-center gap-2">
-                      <span>@{u.username || "-"}</span>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
+                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">{u.fullName || "-"}</div>
+                    <div className="text-[11px] sm:text-[12px] text-slate-500 truncate flex flex-wrap items-center gap-2">
+                      <span className="truncate max-w-[180px] sm:max-w-none">@{u.username || "-"}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
                         user
+                      </span>
+                      <span className="sm:hidden px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-blue-50 text-blue-700 border-blue-200">
+                        Departamenti yt
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-2 text-[11px] text-slate-500">
+                <div className="mt-2 text-[10px] sm:text-[11px] text-slate-500">
                   Krijuar: {u.createdAt ? new Date(u.createdAt).toLocaleString() : "-"}
                 </div>
               </div>
 
-              <div className="shrink-0 flex items-center gap-2">
+              <div className="shrink-0 flex items-center justify-between sm:justify-end gap-2">
                 <span
                   className={cn(
                     "hidden sm:inline-flex px-3 py-1 rounded-full text-[12px] font-semibold border",
@@ -204,142 +217,159 @@ export default function ManagerWorkers() {
                   Departamenti yt
                 </span>
 
-                <button
-                  type="button"
-                  onClick={() => openEdit(u)}
-                  className="h-9 px-3 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
-                >
-                  Edit
-                </button>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(u)}
+                    className="h-9 w-1/2 sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
+                  >
+                    Edit
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => openDelete(u)}
-                  className="h-9 px-3 rounded-2xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition text-sm font-semibold"
-                >
-                  Fshi
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => openDelete(u)}
+                    className="h-9 w-1/2 sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition text-[13px] sm:text-sm font-semibold"
+                  >
+                    Fshi
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* EDIT MODAL */}
+      {/* EDIT MODAL (mobile bottom-sheet + dvh) */}
       {editing ? (
-        <div className="fixed inset-0 z-[9999] bg-black/40 flex items-end sm:items-center justify-center p-3">
-          <div className="w-full sm:max-w-lg rounded-3xl bg-white border border-slate-200 shadow-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Edit punëtorin</div>
-              <button
-                type="button"
-                onClick={closeEdit}
-                className="h-9 px-3 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
-              >
-                Mbyll
-              </button>
-            </div>
-
-            <form onSubmit={saveEdit} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-2">Emri dhe mbiemri</label>
-                <input
-                  value={eFullName}
-                  onChange={(e) => setEFullName(e.target.value)}
-                  className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                  placeholder="p.sh. Punëtor 1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-2">Username</label>
-                <input
-                  value={eUsername}
-                  onChange={(e) => setEUsername(e.target.value)}
-                  className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                  placeholder="p.sh. user1"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-2">Password i ri (opsional)</label>
-                <input
-                  type="password"
-                  value={ePassword}
-                  onChange={(e) => setEPassword(e.target.value)}
-                  className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                  placeholder="Min 6 karaktere"
-                />
-              </div>
-
-              <div className="flex gap-2 justify-end">
+        <div className="fixed inset-0 z-[9999]">
+          <div className="absolute inset-0 bg-black/40" onClick={closeEdit} />
+          <div
+            className="absolute inset-0 flex items-end sm:items-center justify-center p-0 sm:p-3"
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          >
+            <div className="w-full sm:max-w-lg rounded-t-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[85dvh] sm:max-h-none">
+              <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+                <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Edit punëtorin</div>
                 <button
                   type="button"
                   onClick={closeEdit}
-                  className="h-11 px-5 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
+                  className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                 >
-                  Anulo
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className={cn(
-                    "h-11 px-5 rounded-2xl text-white transition text-sm font-semibold",
-                    saving ? "bg-blue-600/70 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-                  )}
-                >
-                  {saving ? "Duke ruajtur…" : "Ruaj"}
+                  Mbyll
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={saveEdit} className="p-4 sm:p-5 space-y-3 sm:space-y-4 overflow-auto flex-1">
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Emri dhe mbiemri</label>
+                  <input
+                    value={eFullName}
+                    onChange={(e) => setEFullName(e.target.value)}
+                    className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                    placeholder="p.sh. Punëtor 1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Username</label>
+                  <input
+                    value={eUsername}
+                    onChange={(e) => setEUsername(e.target.value)}
+                    className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                    placeholder="p.sh. user1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Password i ri (opsional)</label>
+                  <input
+                    type="password"
+                    value={ePassword}
+                    onChange={(e) => setEPassword(e.target.value)}
+                    className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                    placeholder="Min 6 karaktere"
+                    autoComplete="new-password"
+                  />
+                  <p className="mt-2 text-[10px] sm:text-[11px] text-slate-500">Nëse e lë bosh, password-i s’ndryshohet.</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={closeEdit}
+                    className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
+                  >
+                    Anulo
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className={cn(
+                      "h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl text-white transition text-[13px] sm:text-sm font-semibold",
+                      saving ? "bg-blue-600/70 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                    )}
+                  >
+                    {saving ? "Duke ruajtur…" : "Ruaj"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       ) : null}
 
-      {/* DELETE MODAL */}
+      {/* DELETE MODAL (mobile bottom-sheet + dvh) */}
       {deleting ? (
-        <div className="fixed inset-0 z-[9999] bg-black/40 flex items-end sm:items-center justify-center p-3">
-          <div className="w-full sm:max-w-md rounded-3xl bg-white border border-slate-200 shadow-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">Fshi punëtorin</div>
-              <button
-                type="button"
-                onClick={closeDelete}
-                className="h-9 px-3 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
-              >
-                Mbyll
-              </button>
-            </div>
-
-            <div className="p-5">
-              <div className="text-sm text-slate-700">
-                A je i sigurt që do ta fshish <span className="font-semibold">{deleting.fullName || "punëtorin"}</span>?
-              </div>
-              <div className="text-[12px] text-slate-500 mt-1">Ky veprim nuk kthehet mbrapsht.</div>
-
-              <div className="mt-4 flex gap-2 justify-end">
+        <div className="fixed inset-0 z-[9999]">
+          <div className="absolute inset-0 bg-black/40" onClick={closeDelete} />
+          <div
+            className="absolute inset-0 flex items-end sm:items-center justify-center p-0 sm:p-3"
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          >
+            <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[70dvh] sm:max-h-none">
+              <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+                <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Fshi punëtorin</div>
                 <button
                   type="button"
                   onClick={closeDelete}
-                  className="h-11 px-5 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
+                  className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                 >
-                  Anulo
+                  Mbyll
                 </button>
+              </div>
 
-                <button
-                  type="button"
-                  disabled={deletingNow}
-                  onClick={confirmDelete}
-                  className={cn(
-                    "h-11 px-5 rounded-2xl border transition text-sm font-semibold",
-                    deletingNow
-                      ? "border-red-200 bg-red-200 text-red-800 cursor-not-allowed"
-                      : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                  )}
-                >
-                  {deletingNow ? "Duke fshirë…" : "Po, fshi"}
-                </button>
+              <div className="p-4 sm:p-5 overflow-auto flex-1">
+                <div className="text-[13px] sm:text-sm text-slate-700">
+                  A je i sigurt që do ta fshish{" "}
+                  <span className="font-semibold">{deleting.fullName || "punëtorin"}</span>?
+                </div>
+                <div className="text-[11px] sm:text-[12px] text-slate-500 mt-1">Ky veprim nuk kthehet mbrapsht.</div>
+
+                <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={closeDelete}
+                    className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
+                  >
+                    Anulo
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={deletingNow}
+                    onClick={confirmDelete}
+                    className={cn(
+                      "h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border transition text-[13px] sm:text-sm font-semibold",
+                      deletingNow
+                        ? "border-red-200 bg-red-200 text-red-800 cursor-not-allowed"
+                        : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                    )}
+                  >
+                    {deletingNow ? "Duke fshirë…" : "Po, fshi"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

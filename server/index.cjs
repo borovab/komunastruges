@@ -36,7 +36,6 @@ app.use(
 // ---- Helpers ----
 function normRole(v) {
   const r = String(v || "").trim().toLowerCase();
-  // tolerate common misspellings if any exist in DB
   if (["menagjer", "menaxher", "menager"].includes(r)) return "manager";
   return r;
 }
@@ -324,8 +323,7 @@ app.post("/api/users", requireAnyRole(["admin", "manager"]), async (req, res) =>
       role = roleRaw === "admin" || roleRaw === "manager" || roleRaw === "user" ? roleRaw : "user";
 
       const departmentIdRaw = req.body?.departmentId;
-      departmentId =
-        departmentIdRaw === null || departmentIdRaw === undefined ? null : String(departmentIdRaw).trim();
+      departmentId = departmentIdRaw === null || departmentIdRaw === undefined ? null : String(departmentIdRaw).trim();
 
       if ((role === "user" || role === "manager") && !departmentId) {
         return res.status(400).json({ error: "Zgjidh department." });
@@ -573,31 +571,45 @@ app.delete("/api/users/:id", requireAnyRole(["admin", "manager"]), async (req, r
 });
 
 // ---- REPORTS ----
+// NOTE: DB schema must NOT have reports.time_left anymore.
+// If you haven't yet, run:
+//   ALTER TABLE reports DROP COLUMN time_left;
+
 app.post("/api/reports", requireAnyRole(["user", "manager"]), async (req, res) => {
   try {
     const date = String(req.body?.date || "").trim(); // YYYY-MM-DD
 
-    // new fields
     const reasonChoice = String(req.body?.reasonChoice || "").trim();
     const reasonText = String(req.body?.reasonText || "").trim();
-    const timeOut = String(req.body?.timeOut || req.body?.timeLeft || "").trim(); // HH:MM (fallback legacy)
+
+    // keep fallback for old frontend that still sends timeLeft
+    const timeOut = String(req.body?.timeOut || req.body?.timeLeft || "").trim(); // HH:MM
     const timeReturn = String(req.body?.timeReturn || "").trim(); // HH:MM
 
-    if (!reasonChoice || !date || !timeOut || !timeReturn)
+    if (!reasonChoice || !date || !timeOut || !timeReturn) {
       return res.status(400).json({ error: "Plotëso reasonChoice, date, timeOut, timeReturn." });
+    }
 
     const id = uuid();
 
     await pool.query(
       `
-      INSERT INTO reports (id, user_id, department_id, reason, reason_choice, reason_text, report_date, time_left, time_out, time_return, status)
-      VALUES (:id, :userId, :departmentId, :reason, :reasonChoice, :reasonText, :date, :timeOut, :timeOut, :timeReturn, 'submitted')
+      INSERT INTO reports (
+        id, user_id, department_id,
+        reason, reason_choice, reason_text,
+        report_date, time_out, time_return, status
+      )
+      VALUES (
+        :id, :userId, :departmentId,
+        :reason, :reasonChoice, :reasonText,
+        :date, :timeOut, :timeReturn, 'submitted'
+      )
       `,
       {
         id,
         userId: req.user.id,
         departmentId: req.user.departmentId || null,
-        reason: reasonChoice, // legacy
+        reason: reasonChoice, // legacy field kept in DB
         reasonChoice,
         reasonText,
         date,
@@ -626,9 +638,8 @@ app.get("/api/reports", requireAuth(), async (req, res) => {
                r.reason_choice,
                r.reason_text,
                DATE_FORMAT(r.report_date, '%Y-%m-%d') AS report_date,
-               TIME_FORMAT(COALESCE(r.time_out, r.time_left), '%H:%i') AS time_out,
+               TIME_FORMAT(r.time_out, '%H:%i') AS time_out,
                TIME_FORMAT(r.time_return, '%H:%i') AS time_return,
-               TIME_FORMAT(COALESCE(r.time_out, r.time_left), '%H:%i') AS time_left,
                r.status, r.created_at, r.reviewed_at, r.reviewed_by
         FROM reports r
         JOIN users u ON u.id = r.user_id
@@ -676,7 +687,6 @@ app.get("/api/reports", requireAuth(), async (req, res) => {
         date: r.report_date,
 
         // times
-        timeLeft: r.time_left, // legacy
         timeOut: r.time_out,
         timeReturn: r.time_return,
 
