@@ -44,6 +44,7 @@ export default function ManagerReports() {
   const [cTimeReturn, setCTimeReturn] = React.useState("");
   const [cReasonChoice, setCReasonChoice] = React.useState("");
   const [cReasonText, setCReasonText] = React.useState("");
+  const [cRaport, setCRaport] = React.useState(""); // ✅ NEW (opsionale)
 
   const resetCreate = () => {
     setCDate(todayYMD());
@@ -51,6 +52,7 @@ export default function ManagerReports() {
     setCTimeReturn("");
     setCReasonChoice("");
     setCReasonText("");
+    setCRaport(""); // ✅ NEW
   };
 
   const load = async () => {
@@ -116,6 +118,7 @@ export default function ManagerReports() {
       await api.createReport({
         reasonChoice: cReasonChoice,
         reasonText: cReasonText,
+        ...(cRaport ? { raport: cRaport } : {}), // ✅ NEW (opsionale)
         date: cDate,
         timeOut: cTimeOut,
         ...(cTimeReturn ? { timeReturn: cTimeReturn } : {}), // ✅ ora e kthimit opsionale
@@ -205,6 +208,7 @@ export default function ManagerReports() {
                 <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Time out</th>
                 <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Time return</th>
                 <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Arsye</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Raport</th>
                 <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Status</th>
                 <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Departamenti</th>
                 <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Krijuar</th>
@@ -228,6 +232,12 @@ export default function ManagerReports() {
                   <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">
                     <div className="truncate max-w-[220px] sm:max-w-[360px]">{formatReason(r)}</div>
                   </td>
+
+                  {/* ✅ NEW */}
+                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">
+                    <div className="truncate max-w-[220px] sm:max-w-[360px]">{r.raport || "—"}</div>
+                  </td>
+
                   <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">{statusLabel(r.status)}</td>
                   <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">
                     {r.departmentName || r.department || "—"}
@@ -370,6 +380,19 @@ export default function ManagerReports() {
                     placeholder="Shkruaj shënim..."
                   />
                 </div>
+
+                {/* ✅ NEW */}
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
+                    Raport (opsionale)
+                  </label>
+                  <textarea
+                    value={cRaport}
+                    onChange={(e) => setCRaport(e.target.value)}
+                    className="w-full min-h-[110px] rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 py-2 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                    placeholder="Shkruaj raport..."
+                  />
+                </div>
               </div>
 
               <div className="px-4 sm:px-5 py-3 sm:py-4 border-t border-slate-200 bg-white flex flex-col sm:flex-row gap-2 sm:justify-end">
@@ -461,6 +484,14 @@ export default function ManagerReports() {
                   <div className="text-[10px] sm:text-[11px] text-slate-500">Arsye</div>
                   <div className="text-[13px] sm:text-sm text-slate-900 mt-2 whitespace-pre-wrap break-words">
                     {formatReason(open)}
+                  </div>
+                </div>
+
+                {/* ✅ NEW */}
+                <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
+                  <div className="text-[10px] sm:text-[11px] text-slate-500">Raport</div>
+                  <div className="text-[13px] sm:text-sm text-slate-900 mt-2 whitespace-pre-wrap break-words">
+                    {open.raport ? String(open.raport) : "—"}
                   </div>
                 </div>
               </div>
