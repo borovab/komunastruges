@@ -133,8 +133,15 @@ export default function AdminDashboard() {
   const pendingReports = totalReports - reviewedReports;
 
   const totalUsers = users.length;
-  const onlyWorkers = users.filter((u) => (u.role || "").trim().toLowerCase() === "user").length;
-  const admins = users.filter((u) => (u.role || "").trim().toLowerCase() === "admin").length;
+
+  // ✅ punëtorë = user + manager (superadmin mos e llogarit fare këtu)
+  const workersCount = users.filter((u) => {
+    const role = String(u.role || "").trim().toLowerCase();
+    return role === "user" ;
+  }).length;
+
+  // ✅ vetëm admin (pa superadmin)
+  const admins = users.filter((u) => String(u.role || "").trim().toLowerCase() === "admin").length;
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const reportsToday = reports.filter((r) => String(r.date || "").trim().slice(0, 10) === todayISO)
@@ -245,7 +252,7 @@ export default function AdminDashboard() {
         <StatCard title="Raporte totale" value={totalReports} sub={`Sot: ${reportsToday}`} tone="blue" />
         <StatCard title="Pending" value={pendingReports} sub="Raporte pa review" tone="amber" />
         <StatCard title="Reviewed" value={reviewedReports} sub="Raporte të verifikuara" tone="emerald" />
-        <StatCard title="Punëtorë" value={onlyWorkers} sub={`Admin: ${admins} • Total: ${totalUsers}`} tone="rose" />
+        <StatCard title="Punëtorë" value={workersCount}  />
       </div>
 
       {/* Mini chart 7 days */}
@@ -262,9 +269,7 @@ export default function AdminDashboard() {
             const h = Math.max(6, Math.round((d.count / max7) * 64)); // smaller chart
             return (
               <div key={d.key} className="flex flex-col items-center gap-1.5">
-                <div className="text-[10px] sm:text-[11px] font-semibold text-slate-700">
-                  {d.count}
-                </div>
+                <div className="text-[10px] sm:text-[11px] font-semibold text-slate-700">{d.count}</div>
 
                 <div className="w-full h-[64px] sm:h-[72px] flex items-end rounded-xl bg-slate-50 border border-slate-200 px-1">
                   <div
@@ -289,7 +294,9 @@ export default function AdminDashboard() {
         {loading ? <div className="text-[12px] text-slate-500">Loading…</div> : null}
       </div>
 
-      {!loading && reports.length === 0 ? <div className="text-[13px] text-slate-500">S’ka raporte.</div> : null}
+      {!loading && reports.length === 0 ? (
+        <div className="text-[13px] text-slate-500">S’ka raporte.</div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
         {reports.map((r) => {

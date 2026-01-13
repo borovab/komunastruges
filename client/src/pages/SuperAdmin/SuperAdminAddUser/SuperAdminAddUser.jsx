@@ -190,7 +190,7 @@ export default function SuperAdminAddUser() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="p.sh. Beqir Borova"
+                placeholder="p.sh. John Doe"
               />
             </div>
 
@@ -201,7 +201,7 @@ export default function SuperAdminAddUser() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="p.sh. beqir"
+                placeholder="p.sh. johndoe"
                 autoComplete="off"
               />
               <p className="mt-2 text-[11px] text-slate-500">Pa hapësira. Minimum 3 karaktere.</p>

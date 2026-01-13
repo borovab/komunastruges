@@ -12,17 +12,21 @@ export default function AdminDepartments() {
   const [ok, setOk] = React.useState("");
 
   const [departments, setDepartments] = React.useState([]);
+  const [users, setUsers] = React.useState([]);
+  const [reports, setReports] = React.useState([]);
 
-  // create
-  const [name, setName] = React.useState("");
+  // selected department
+  const [selectedDepId, setSelectedDepId] = React.useState(null);
 
   const load = async () => {
     setLoading(true);
     setErr("");
     setOk("");
     try {
-      const r = await api.listDepartments();
-      setDepartments(r.departments || []);
+      const [deps, u, r] = await Promise.all([api.listDepartments(), api.listUsers(), api.listReports()]);
+      setDepartments(deps.departments || []);
+      setUsers((u.users || []).filter((x) => String(x?.role || "").trim().toLowerCase() !== "superadmin"));
+      setReports(r.reports || []);
     } catch (e) {
       setErr(e?.message || "Gabim");
     } finally {
@@ -34,29 +38,58 @@ export default function AdminDepartments() {
     load();
   }, []);
 
-  const create = async (e) => {
-    e.preventDefault();
-    setErr("");
-    setOk("");
+  const selectedDep = React.useMemo(() => {
+    if (!selectedDepId) return null;
+    return departments.find((d) => String(d.id) === String(selectedDepId)) || null;
+  }, [departments, selectedDepId]);
 
-    const v = name.trim();
-    if (!v) return setErr("Shkruaj emrin e departamentit.");
+  const selectedWorkersCount = React.useMemo(() => {
+    if (!selectedDepId) return 0;
+    const dep = String(selectedDepId).trim();
+    return users.filter((u) => String(u.departmentId || "").trim() === dep).length;
+  }, [users, selectedDepId]);
 
-    try {
-      await api.createDepartment({ name: v });
-      setName("");
-      setOk("Departamenti u shtua.");
-      await load();
-    } catch (e2) {
-      setErr(e2?.message || "Gabim");
+  const selectedReportsCount = React.useMemo(() => {
+    if (!selectedDepId) return 0;
+    const dep = String(selectedDepId).trim();
+    return reports.filter((r) => String(r.departmentId || "").trim() === dep).length;
+  }, [reports, selectedDepId]);
+
+  const depStats = React.useMemo(() => {
+    const userCountByDep = new Map();
+    for (const u of users) {
+      const dep = String(u.departmentId || "").trim();
+      if (!dep) continue;
+      userCountByDep.set(dep, (userCountByDep.get(dep) || 0) + 1);
     }
-  };
+
+    const reportCountByDep = new Map();
+    for (const r of reports) {
+      const dep = String(r.departmentId || "").trim();
+      if (!dep) continue;
+      reportCountByDep.set(dep, (reportCountByDep.get(dep) || 0) + 1);
+    }
+
+    return { userCountByDep, reportCountByDep };
+  }, [users, reports]);
 
   return (
     <div className="mx-auto max-w-5xl px-3 sm:px-4 py-4 sm:py-5">
-      <div className="mb-4">
-        <h2 className="text-base sm:text-lg font-bold text-slate-900">Departamentet</h2>
-        <p className="text-[12px] sm:text-sm text-slate-500 mt-1">Shto departamente (pa edit / pa fshirje).</p>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">Departamentet</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">
+            Lista e departamenteve + statistika (punëtorë & raporte).
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={load}
+          className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
+        >
+          Rifresko
+        </button>
       </div>
 
       {err ? (
@@ -72,31 +105,6 @@ export default function AdminDepartments() {
       ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* Create */}
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
-          <div className="text-sm font-semibold text-slate-900">Shto departament</div>
-          <div className="text-[11px] text-slate-500 mt-1">Emri duhet të jetë unik.</div>
-
-          <form onSubmit={create} className="mt-3 grid gap-3">
-            <label className="grid gap-1">
-              <span className="text-[12px] font-semibold text-slate-600">Emri</span>
-              <input
-                className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 text-sm"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="p.sh. Administrata"
-              />
-            </label>
-
-            <button
-              type="submit"
-              className="h-10 px-4 rounded-xl font-semibold text-sm bg-slate-900 text-white hover:bg-black transition"
-            >
-              Shto
-            </button>
-          </form>
-        </div>
-
         {/* List */}
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
           <div className="flex items-center justify-between gap-3">
@@ -107,33 +115,120 @@ export default function AdminDepartments() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={load}
-              className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-semibold"
-            >
-              Rifresko
-            </button>
+            {loading ? <div className="text-sm text-slate-500">Loading…</div> : null}
           </div>
-
-          {loading ? <div className="mt-3 text-sm text-slate-500">Loading…</div> : null}
 
           {!loading && departments.length === 0 ? (
             <div className="mt-3 text-sm text-slate-500">S’ka departamente.</div>
           ) : null}
 
           <div className="mt-3 grid gap-2">
-            {departments.map((d) => (
-              <div key={d.id} className="rounded-2xl border border-slate-200 bg-white p-3">
+            {departments.map((d) => {
+              const active = String(selectedDepId || "") === String(d.id);
+              const workers = depStats.userCountByDep.get(String(d.id)) || 0;
+              const reps = depStats.reportCountByDep.get(String(d.id)) || 0;
+
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => setSelectedDepId(d.id)}
+                  className={cn(
+                    "w-full text-left rounded-2xl border p-3 transition",
+                    active
+                      ? "border-blue-200 bg-blue-50"
+                      : "border-slate-200 bg-white hover:bg-slate-50"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-900 truncate">{d.name}</div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {d.createdAt ? new Date(d.createdAt).toLocaleString() : ""}
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex flex-col items-end gap-1">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
+                        {workers} punëtorë
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
+                        {reps} raporte
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Details */}
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
+          <div className="text-sm font-semibold text-slate-900">Detajet</div>
+          <div className="text-[11px] text-slate-500 mt-1">Kliko një departament për të parë statistikat.</div>
+
+          {!selectedDepId ? (
+            <div className="mt-4 text-sm text-slate-500">Zgjidh një departament nga lista majtas.</div>
+          ) : (
+            <div className="mt-4">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-slate-900 truncate">{d.name}</div>
-                  <div className="text-[11px] text-slate-500 truncate">
-                    {d.createdAt ? new Date(d.createdAt).toLocaleString() : ""}
+                  <div className="text-base font-bold text-slate-900 truncate">{selectedDep?.name || "—"}</div>
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    {selectedDep?.createdAt ? new Date(selectedDep.createdAt).toLocaleString() : ""}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedDepId(null)}
+                  className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-semibold"
+                >
+                  Mbyll
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="text-[11px] font-semibold text-slate-500">Punëtorë</div>
+                  <div className="mt-1 text-2xl font-extrabold text-slate-900">{selectedWorkersCount}</div>
+                  <div className="mt-1 text-[11px] text-slate-500">në këtë departament</div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="text-[11px] font-semibold text-slate-500">Raporte</div>
+                  <div className="mt-1 text-2xl font-extrabold text-slate-900">{selectedReportsCount}</div>
+                  <div className="mt-1 text-[11px] text-slate-500">të dërguara</div>
+                </div>
+              </div>
+
+              {/* optional list of workers in that department */}
+              <div className="mt-4">
+                <div className="text-[12px] font-semibold text-slate-700 mb-2">Punëtorët</div>
+
+                <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                  <div className="divide-y divide-slate-200">
+                    {users
+                      .filter((u) => String(u.departmentId || "").trim() === String(selectedDepId).trim())
+                      .map((u) => (
+                        <div key={u.id} className="px-3 py-2.5 bg-white">
+                          <div className="text-[13px] font-semibold text-slate-900 truncate">{u.fullName || "-"}</div>
+                          <div className="text-[11px] text-slate-500 truncate">@{u.username || "-"}</div>
+                        </div>
+                      ))}
+
+                    {selectedWorkersCount === 0 ? (
+                      <div className="px-3 py-3 bg-white text-[13px] text-slate-500">S’ka punëtorë.</div>
+                    ) : null}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* optional: reports count note */}
+           
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -66,22 +66,7 @@ export default function AdminReports() {
     setActing(false);
   };
 
-  const deleteReport = async (id) => {
-    if (!window.confirm("A je i sigurt që do ta fshish këtë raportim?")) return;
 
-    setErr("");
-    setOkMsg("");
-    setActing(true);
-    try {
-      await api.deleteReport(id);
-      setOkMsg("Raportimi u fshi.");
-      closeDetails();
-      await load();
-    } catch (e) {
-      setErr(e?.message || "Gabim");
-      setActing(false);
-    }
-  };
 
   const markReviewed = async (id) => {
     setErr("");
@@ -358,19 +343,7 @@ export default function AdminReports() {
                   </button>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={() => deleteReport(open.id)}
-                  className={cn(
-                    "h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border transition text-[13px] sm:text-sm font-semibold",
-                    acting
-                      ? "border-red-200 bg-red-50 text-red-700/70 cursor-not-allowed"
-                      : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                  )}
-                  disabled={acting}
-                >
-                  Fshi
-                </button>
+            
               </div>
             </div>
           </div>

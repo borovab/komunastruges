@@ -285,26 +285,42 @@ app.put("/api/departments/:id", requireAnyRole(["admin", "superadmin"]), async (
 });
 
 // ✅ superadmin lejohet si admin
-app.delete("/api/departments/:id", requireAnyRole(["admin", "superadmin"]), async (req, res) => {
+app.delete("/api/users/:id", requireAnyRole(["admin", "manager", "superadmin"]), async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing id." });
 
-    const [exists] = await pool.query(`SELECT 1 FROM departments WHERE id=:id LIMIT 1`, { id });
-    if (!exists.length) return res.status(404).json({ error: "Not found" });
+    if (req.user.role === "manager") {
+      const [rows] = await pool.query(`SELECT role, department_id FROM users WHERE id=:id LIMIT 1`, { id });
+      if (!rows.length) return res.status(404).json({ error: "Not found" });
 
-    const [inUse] = await pool.query(
-      `SELECT 1 FROM users WHERE department_id=:id AND role IN ('user','manager') LIMIT 1`,
-      { id }
-    );
-    if (inUse.length) return res.status(409).json({ error: "Departamenti është në përdorim." });
+      const r = rows[0];
+      if (normRole(r.role) !== "user") return res.status(403).json({ error: "Forbidden" });
+      if ((r.department_id || null) !== (req.user.departmentId || null)) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
-    await pool.query(`DELETE FROM departments WHERE id=:id`, { id });
+      await pool.query(`DELETE FROM users WHERE id=:id AND role='user'`, { id });
+      return res.json({ ok: true });
+    }
+
+    // ✅ admin/superadmin: lejo fshirje vetëm user/manager, por jep arsye kur është admin/superadmin
+    const [rows] = await pool.query(`SELECT role FROM users WHERE id=:id LIMIT 1`, { id });
+    if (!rows.length) return res.status(404).json({ error: "Not found" });
+
+    const targetRole = normRole(rows[0].role);
+
+    if (targetRole === "admin" || targetRole === "superadmin") {
+      return res.status(403).json({ error: "Nuk lejohet fshirja e admin/superadmin." });
+    }
+
+    await pool.query(`DELETE FROM users WHERE id=:id AND role IN ('user','manager')`, { id });
     return res.json({ ok: true });
   } catch (e) {
     return res.status(500).json({ error: e?.message || "Server error" });
   }
 });
+
 
 // ---- USERS (admin + manager + superadmin) ----
 app.post("/api/users", requireAnyRole(["admin", "manager", "superadmin"]), async (req, res) => {

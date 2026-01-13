@@ -11,7 +11,6 @@ export default function AdminAddUser() {
 
   const [fullName, setFullName] = React.useState("");
   const [username, setUsername] = React.useState("");
-  const [role, setRole] = React.useState("user"); // user | manager | admin
   const [departmentId, setDepartmentId] = React.useState("");
 
   const [password, setPassword] = React.useState("");
@@ -24,7 +23,9 @@ export default function AdminAddUser() {
   const [err, setErr] = React.useState("");
   const [ok, setOk] = React.useState("");
 
-  const needsDepartment = role === "user" || role === "manager";
+  // ✅ only user allowed
+  const role = "user";
+  const needsDepartment = true;
 
   const loadDepartments = async () => {
     setDepsLoading(true);
@@ -33,12 +34,10 @@ export default function AdminAddUser() {
       const list = r.departments || [];
       setDepartments(list);
 
-      // auto-select first department for user/manager if empty
       if (!departmentId && list.length) {
         setDepartmentId(String(list[0].id));
       }
     } catch (e) {
-      // mos e blloko formën komplet, por shfaq error
       setErr(e?.message || "Nuk u arrit me i marrë departamentet.");
     } finally {
       setDepsLoading(false);
@@ -50,16 +49,6 @@ export default function AdminAddUser() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  React.useEffect(() => {
-    // nëse kalon në admin → s’na duhet departamenti
-    if (!needsDepartment) setDepartmentId("");
-    // nëse kalon në user/manager dhe ka lista → auto-select
-    if (needsDepartment && !departmentId && departments.length) {
-      setDepartmentId(String(departments[0].id));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role]);
-
   const validate = () => {
     const u = username.trim();
     const n = fullName.trim();
@@ -68,11 +57,7 @@ export default function AdminAddUser() {
     if (!u) return "Shkruaj username.";
     if (u.length < 3) return "Username duhet të ketë të paktën 3 karaktere.";
 
-    if (role !== "admin" && role !== "user" && role !== "manager") return "Roli nuk është valid.";
-
-    if (needsDepartment) {
-      if (!departmentId) return "Zgjidh departamentin.";
-    }
+    if (!departmentId) return "Zgjidh departamentin.";
 
     if (!password) return "Shkruaj password.";
     if (password.length < 6) return "Password duhet të ketë të paktën 6 karaktere.";
@@ -98,8 +83,8 @@ export default function AdminAddUser() {
         fullName: fullName.trim(),
         username: username.trim(),
         password,
-        role,
-        ...(needsDepartment ? { departmentId } : {}),
+        role: "user",
+        departmentId,
       };
 
       await api.createUser(payload);
@@ -109,9 +94,7 @@ export default function AdminAddUser() {
       setUsername("");
       setPassword("");
       setConfirmPassword("");
-      setRole("user");
 
-      // reset dept to first (if exists)
       if (departments.length) setDepartmentId(String(departments[0].id));
       else setDepartmentId("");
 
@@ -129,9 +112,7 @@ export default function AdminAddUser() {
       <div className="flex items-start justify-between gap-3 mb-5">
         <div>
           <h1 className="text-lg font-bold text-slate-900">Shto përdorues</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Krijo llogari të re për admin, manager ose user.
-          </p>
+          <p className="text-sm text-slate-500 mt-1">Krijo vetëm llogari User (me departament).</p>
         </div>
 
         <button
@@ -152,7 +133,7 @@ export default function AdminAddUser() {
             </span>
             <div className="leading-tight">
               <div className="text-sm font-semibold text-slate-900">Add User</div>
-              <div className="text-[12px] text-slate-500">Forma e krijimit</div>
+              <div className="text-[12px] text-slate-500">Vetëm User</div>
             </div>
           </div>
         </div>
@@ -179,70 +160,24 @@ export default function AdminAddUser() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="p.sh. Beqir Borova"
+                placeholder="p.sh. John Doe"
               />
             </div>
 
             {/* Username */}
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-medium text-slate-700 mb-2">Username</label>
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="p.sh. beqir"
+                placeholder="p.sh. johndoe"
                 autoComplete="off"
               />
               <p className="mt-2 text-[11px] text-slate-500">Pa hapësira. Minimum 3 karaktere.</p>
             </div>
 
-            {/* Role */}
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Roli</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setRole("user")}
-                  className={cn(
-                    "h-11 rounded-2xl border text-sm font-semibold transition",
-                    role === "user"
-                      ? "border-blue-200 bg-blue-50 text-blue-700"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  )}
-                >
-                  User
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRole("manager")}
-                  className={cn(
-                    "h-11 rounded-2xl border text-sm font-semibold transition",
-                    role === "manager"
-                      ? "border-blue-200 bg-blue-50 text-blue-700"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  )}
-                >
-                  Manager
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRole("admin")}
-                  className={cn(
-                    "h-11 rounded-2xl border text-sm font-semibold transition",
-                    role === "admin"
-                      ? "border-blue-200 bg-blue-50 text-blue-700"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  )}
-                >
-                  Admin
-                </button>
-              </div>
-              <p className="mt-2 text-[11px] text-slate-500">User/Manager lidhen me departament. Admin jo.</p>
-            </div>
-
-            {/* Department (only for user/manager) */}
+            {/* Department */}
             <div className={cn(needsDepartment ? "md:col-span-2" : "hidden")}>
               <label className="block text-xs font-medium text-slate-700 mb-2">Departamenti</label>
 
@@ -255,7 +190,7 @@ export default function AdminAddUser() {
                 >
                   {depsLoading ? <option value="">Duke i ngarkuar…</option> : null}
                   {!depsLoading && departments.length === 0 ? (
-                    <option value="">S’ka departamente (krijo në /admin/departments)</option>
+                    <option value="">S’ka departamente</option>
                   ) : null}
                   {!depsLoading &&
                     departments.map((d) => (
@@ -274,10 +209,6 @@ export default function AdminAddUser() {
                   ↻
                 </button>
               </div>
-
-              <p className="mt-2 text-[11px] text-slate-500">
-                Nëse s’ka departamente, krijoji te <b>/admin/departments</b>.
-              </p>
             </div>
 
             {/* Password */}
