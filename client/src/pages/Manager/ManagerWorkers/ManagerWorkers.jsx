@@ -1,11 +1,25 @@
+// src/pages/manager/ManagerWorkers/ManagerWorkers.jsx (FULL)
+// ✅ i18n ready + MK/SQ translations
 import React from "react";
 import { api, getSession } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext"; // 🔁 ndrysho path sipas projektit
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
 
 export default function ManagerWorkers() {
+  const { t } = useLang();
+
+  // ✅ safe translation helper (fallback SQ)
+  const tr = React.useCallback(
+    (key, fallback, vars) => {
+      const v = t(key, vars);
+      return v === key ? fallback : v;
+    },
+    [t]
+  );
+
   const s = getSession();
   const depId = s?.user?.departmentId || null;
 
@@ -15,14 +29,14 @@ export default function ManagerWorkers() {
   const [users, setUsers] = React.useState([]);
 
   // edit modal
-  const [editing, setEditing] = React.useState(null); // user object
+  const [editing, setEditing] = React.useState(null);
   const [eFullName, setEFullName] = React.useState("");
   const [eUsername, setEUsername] = React.useState("");
   const [ePassword, setEPassword] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
   // delete confirm
-  const [deleting, setDeleting] = React.useState(null); // user object
+  const [deleting, setDeleting] = React.useState(null);
   const [deletingNow, setDeletingNow] = React.useState(false);
 
   const load = async () => {
@@ -31,14 +45,13 @@ export default function ManagerWorkers() {
     setOkMsg("");
     try {
       const u = await api.listUsers(); // backend already filters for manager, but we keep safe filter too
-      const all = u.users || [];
+      const all = u?.users || [];
 
       const onlyWorkers = all.filter((x) => String(x.role || "").toLowerCase() === "user");
       const onlyMyDep = depId ? onlyWorkers.filter((x) => String(x.departmentId || "") === String(depId)) : [];
-
       setUsers(onlyMyDep);
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || tr("common.errors.generic", "Gabim"));
     } finally {
       setLoading(false);
     }
@@ -70,24 +83,29 @@ export default function ManagerWorkers() {
     setErr("");
     setOkMsg("");
 
-    if (!editing?.id) return setErr("Missing user id.");
-    if (!eFullName.trim()) return setErr("Plotëso emrin.");
-    if (!eUsername.trim()) return setErr("Plotëso username.");
-    if (ePassword.trim() && ePassword.trim().length < 6) return setErr("Password shumë i shkurtër (min 6).");
+    const fn = String(eFullName || "").trim();
+    const un = String(eUsername || "").trim();
+    const pw = String(ePassword || "").trim();
+
+    if (!editing?.id) return setErr(tr("managerWorkers.errors.missingUserId", "Missing user id."));
+    if (!fn) return setErr(tr("managerWorkers.errors.fillName", "Plotëso emrin."));
+    if (!un) return setErr(tr("managerWorkers.errors.fillUsername", "Plotëso username."));
+    if (pw && pw.length < 6)
+      return setErr(tr("managerWorkers.errors.passwordTooShort", "Password shumë i shkurtër (min 6)."));
 
     setSaving(true);
     try {
       await api.updateUser(editing.id, {
-        fullName: eFullName.trim(),
-        username: eUsername.trim(),
-        password: ePassword.trim() ? ePassword.trim() : undefined,
+        fullName: fn,
+        username: un,
+        ...(pw ? { password: pw } : {}),
       });
 
-      setOkMsg("Punëtori u përditësua.");
+      setOkMsg(tr("managerWorkers.ok.updated", "Punëtori u përditësua."));
       closeEdit();
       await load();
     } catch (e2) {
-      setErr(e2?.message || "Gabim");
+      setErr(e2?.message || tr("common.errors.generic", "Gabim"));
     } finally {
       setSaving(false);
     }
@@ -108,11 +126,11 @@ export default function ManagerWorkers() {
     setDeletingNow(true);
     try {
       await api.deleteUser(deleting.id);
-      setOkMsg("Punëtori u fshi.");
+      setOkMsg(tr("managerWorkers.ok.deleted", "Punëtori u fshi."));
       closeDelete();
       await load();
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || tr("common.errors.generic", "Gabim"));
     } finally {
       setDeletingNow(false);
     }
@@ -123,9 +141,11 @@ export default function ManagerWorkers() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Manager • Punëtorët</h2>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">
+            {tr("managerWorkers.headerTitle", "Manager • Punëtorët")}
+          </h2>
           <p className="text-[12px] sm:text-sm text-slate-500 mt-1">
-            Këtu shfaqen vetëm punëtorët e departamentit tënd.
+            {tr("managerWorkers.headerSubtitle", "Këtu shfaqen vetëm punëtorët e departamentit tënd.")}
           </p>
         </div>
 
@@ -134,7 +154,7 @@ export default function ManagerWorkers() {
           onClick={load}
           className="h-10 w-full sm:w-auto px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
         >
-          Rifresko
+          {tr("managerWorkers.actions.refresh", "Rifresko")}
         </button>
       </div>
 
@@ -159,16 +179,24 @@ export default function ManagerWorkers() {
               U
             </span>
             <div className="leading-tight min-w-0">
-              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Lista e punëtorëve</div>
-              <div className="text-[11px] sm:text-[12px] text-slate-500">{users.length} punëtorë</div>
+              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">
+                {tr("managerWorkers.list.title", "Lista e punëtorëve")}
+              </div>
+              <div className="text-[11px] sm:text-[12px] text-slate-500">
+                {tr("managerWorkers.list.count", "{n} punëtorë", { n: users.length })}
+              </div>
             </div>
           </div>
 
-          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">Loading…</div> : null}
+          {loading ? (
+            <div className="text-[12px] sm:text-sm text-slate-500">{tr("common.loading", "Loading…")}</div>
+          ) : null}
         </div>
 
         {!loading && users.length === 0 ? (
-          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">S’ka punëtorë në departament.</div>
+          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">
+            {tr("managerWorkers.list.empty", "S’ka punëtorë në departament.")}
+          </div>
         ) : null}
 
         <div className="divide-y divide-slate-200">
@@ -192,18 +220,21 @@ export default function ManagerWorkers() {
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">{u.fullName || "-"}</div>
                     <div className="text-[11px] sm:text-[12px] text-slate-500 truncate flex flex-wrap items-center gap-2">
                       <span className="truncate max-w-[180px] sm:max-w-none">@{u.username || "-"}</span>
+
                       <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
-                        user
+                        {tr("managerWorkers.labels.roleUser", "user")}
                       </span>
+
                       <span className="sm:hidden px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-blue-50 text-blue-700 border-blue-200">
-                        Departamenti yt
+                        {tr("managerWorkers.labels.myDepartment", "Departamenti yt")}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-2 text-[10px] sm:text-[11px] text-slate-500">
-                  Krijuar: {u.createdAt ? new Date(u.createdAt).toLocaleString() : "-"}
+                  {tr("managerWorkers.labels.created", "Krijuar")}:{" "}
+                  {u.createdAt ? new Date(u.createdAt).toLocaleString() : "-"}
                 </div>
               </div>
 
@@ -214,7 +245,7 @@ export default function ManagerWorkers() {
                     "bg-blue-50 text-blue-700 border-blue-200"
                   )}
                 >
-                  Departamenti yt
+                  {tr("managerWorkers.labels.myDepartment", "Departamenti yt")}
                 </span>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -223,7 +254,7 @@ export default function ManagerWorkers() {
                     onClick={() => openEdit(u)}
                     className="h-9 w-1/2 sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                   >
-                    Edit
+                    {tr("managerWorkers.actions.edit", "Edit")}
                   </button>
 
                   <button
@@ -231,7 +262,7 @@ export default function ManagerWorkers() {
                     onClick={() => openDelete(u)}
                     className="h-9 w-1/2 sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition text-[13px] sm:text-sm font-semibold"
                   >
-                    Fshi
+                    {tr("managerWorkers.actions.delete", "Fshi")}
                   </button>
                 </div>
               </div>
@@ -240,7 +271,7 @@ export default function ManagerWorkers() {
         </div>
       </div>
 
-      {/* EDIT MODAL (mobile bottom-sheet + dvh) */}
+      {/* EDIT MODAL */}
       {editing ? (
         <div className="fixed inset-0 z-[9999]">
           <div className="absolute inset-0 bg-black/40" onClick={closeEdit} />
@@ -250,48 +281,61 @@ export default function ManagerWorkers() {
           >
             <div className="w-full sm:max-w-lg rounded-t-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[85dvh] sm:max-h-none">
               <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
-                <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Edit punëtorin</div>
+                <div className="text-[13px] sm:text-sm font-semibold text-slate-900">
+                  {tr("managerWorkers.editModal.title", "Edit punëtorin")}
+                </div>
                 <button
                   type="button"
                   onClick={closeEdit}
                   className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                 >
-                  Mbyll
+                  {tr("managerWorkers.actions.close", "Mbyll")}
                 </button>
               </div>
 
               <form onSubmit={saveEdit} className="p-4 sm:p-5 space-y-3 sm:space-y-4 overflow-auto flex-1">
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Emri dhe mbiemri</label>
+                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
+                    {tr("managerWorkers.form.fullName", "Emri dhe mbiemri")}
+                  </label>
                   <input
                     value={eFullName}
                     onChange={(e) => setEFullName(e.target.value)}
                     className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    placeholder="p.sh. Punëtor 1"
+                    placeholder={tr("managerWorkers.placeholders.fullName", "p.sh. Punëtor 1")}
+                    disabled={saving}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Username</label>
+                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
+                    {tr("managerWorkers.form.username", "Username")}
+                  </label>
                   <input
                     value={eUsername}
                     onChange={(e) => setEUsername(e.target.value)}
                     className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    placeholder="p.sh. user1"
+                    placeholder={tr("managerWorkers.placeholders.username", "p.sh. user1")}
+                    disabled={saving}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Password i ri (opsional)</label>
+                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
+                    {tr("managerWorkers.form.newPasswordOptional", "Password i ri (opsional)")}
+                  </label>
                   <input
                     type="password"
                     value={ePassword}
                     onChange={(e) => setEPassword(e.target.value)}
                     className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    placeholder="Min 6 karaktere"
+                    placeholder={tr("managerWorkers.placeholders.password", "Min 6 karaktere")}
                     autoComplete="new-password"
+                    disabled={saving}
                   />
-                  <p className="mt-2 text-[10px] sm:text-[11px] text-slate-500">Nëse e lë bosh, password-i s’ndryshohet.</p>
+                  <p className="mt-2 text-[10px] sm:text-[11px] text-slate-500">
+                    {tr("managerWorkers.editModal.hint", "Nëse e lë bosh, password-i s’ndryshohet.")}
+                  </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 justify-end pt-1">
@@ -299,8 +343,9 @@ export default function ManagerWorkers() {
                     type="button"
                     onClick={closeEdit}
                     className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
+                    disabled={saving}
                   >
-                    Anulo
+                    {tr("managerWorkers.actions.cancel", "Anulo")}
                   </button>
 
                   <button
@@ -311,7 +356,9 @@ export default function ManagerWorkers() {
                       saving ? "bg-blue-600/70 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
                     )}
                   >
-                    {saving ? "Duke ruajtur…" : "Ruaj"}
+                    {saving
+                      ? tr("managerWorkers.actions.saving", "Duke ruajtur…")
+                      : tr("managerWorkers.actions.save", "Ruaj")}
                   </button>
                 </div>
               </form>
@@ -320,7 +367,7 @@ export default function ManagerWorkers() {
         </div>
       ) : null}
 
-      {/* DELETE MODAL (mobile bottom-sheet + dvh) */}
+      {/* DELETE MODAL */}
       {deleting ? (
         <div className="fixed inset-0 z-[9999]">
           <div className="absolute inset-0 bg-black/40" onClick={closeDelete} />
@@ -330,30 +377,36 @@ export default function ManagerWorkers() {
           >
             <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[70dvh] sm:max-h-none">
               <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
-                <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Fshi punëtorin</div>
+                <div className="text-[13px] sm:text-sm font-semibold text-slate-900">
+                  {tr("managerWorkers.deleteModal.title", "Fshi punëtorin")}
+                </div>
                 <button
                   type="button"
                   onClick={closeDelete}
                   className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                 >
-                  Mbyll
+                  {tr("managerWorkers.actions.close", "Mbyll")}
                 </button>
               </div>
 
               <div className="p-4 sm:p-5 overflow-auto flex-1">
                 <div className="text-[13px] sm:text-sm text-slate-700">
-                  A je i sigurt që do ta fshish{" "}
-                  <span className="font-semibold">{deleting.fullName || "punëtorin"}</span>?
+                  {tr("managerWorkers.deleteModal.question", "A je i sigurt që do ta fshish {name}?", {
+                    name: deleting.fullName || tr("managerWorkers.deleteModal.workerFallback", "punëtorin"),
+                  })}
                 </div>
-                <div className="text-[11px] sm:text-[12px] text-slate-500 mt-1">Ky veprim nuk kthehet mbrapsht.</div>
+                <div className="text-[11px] sm:text-[12px] text-slate-500 mt-1">
+                  {tr("managerWorkers.deleteModal.warning", "Ky veprim nuk kthehet mbrapsht.")}
+                </div>
 
                 <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-end">
                   <button
                     type="button"
                     onClick={closeDelete}
                     className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
+                    disabled={deletingNow}
                   >
-                    Anulo
+                    {tr("managerWorkers.actions.cancel", "Anulo")}
                   </button>
 
                   <button
@@ -367,7 +420,9 @@ export default function ManagerWorkers() {
                         : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
                     )}
                   >
-                    {deletingNow ? "Duke fshirë…" : "Po, fshi"}
+                    {deletingNow
+                      ? tr("managerWorkers.actions.deleting", "Duke fshirë…")
+                      : tr("managerWorkers.actions.confirmDelete", "Po, fshi")}
                   </button>
                 </div>
               </div>

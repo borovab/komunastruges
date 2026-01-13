@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext";
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
@@ -8,6 +9,7 @@ function cn(...a) {
 
 export default function AdminAddUser() {
   const navigate = useNavigate();
+  const { t } = useLang();
 
   const [fullName, setFullName] = React.useState("");
   const [username, setUsername] = React.useState("");
@@ -38,7 +40,7 @@ export default function AdminAddUser() {
         setDepartmentId(String(list[0].id));
       }
     } catch (e) {
-      setErr(e?.message || "Nuk u arrit me i marrë departamentet.");
+      setErr(e?.message || t("adminAddUser.errors.depsFetchFail"));
     } finally {
       setDepsLoading(false);
     }
@@ -53,15 +55,15 @@ export default function AdminAddUser() {
     const u = username.trim();
     const n = fullName.trim();
 
-    if (!n) return "Shkruaj emrin dhe mbiemrin.";
-    if (!u) return "Shkruaj username.";
-    if (u.length < 3) return "Username duhet të ketë të paktën 3 karaktere.";
+    if (!n) return t("adminAddUser.errors.fullNameRequired");
+    if (!u) return t("adminAddUser.errors.usernameRequired");
+    if (u.length < 3) return t("adminAddUser.errors.usernameMin3");
 
-    if (!departmentId) return "Zgjidh departamentin.";
+    if (!departmentId) return t("adminAddUser.errors.departmentRequired");
 
-    if (!password) return "Shkruaj password.";
-    if (password.length < 6) return "Password duhet të ketë të paktën 6 karaktere.";
-    if (password !== confirmPassword) return "Password-at nuk përputhen.";
+    if (!password) return t("adminAddUser.errors.passwordRequired");
+    if (password.length < 6) return t("adminAddUser.errors.passwordMin6");
+    if (password !== confirmPassword) return t("adminAddUser.errors.passwordMismatch");
 
     return "";
   };
@@ -89,7 +91,7 @@ export default function AdminAddUser() {
 
       await api.createUser(payload);
 
-      setOk("Përdoruesi u krijua me sukses.");
+      setOk(t("adminAddUser.ok.userCreated"));
       setFullName("");
       setUsername("");
       setPassword("");
@@ -100,7 +102,7 @@ export default function AdminAddUser() {
 
       setTimeout(() => navigate("/admin/workers"), 600);
     } catch (e2) {
-      setErr(e2?.message || "Gabim gjatë krijimit të përdoruesit.");
+      setErr(e2?.message || t("adminAddUser.errors.createFail"));
     } finally {
       setLoading(false);
     }
@@ -111,8 +113,8 @@ export default function AdminAddUser() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Shto përdorues</h1>
-          <p className="text-sm text-slate-500 mt-1">Krijo vetëm llogari User (me departament).</p>
+          <h1 className="text-lg font-bold text-slate-900">{t("adminAddUser.title")}</h1>
+          <p className="text-sm text-slate-500 mt-1">{t("adminAddUser.subtitle")}</p>
         </div>
 
         <button
@@ -120,7 +122,7 @@ export default function AdminAddUser() {
           onClick={() => navigate("/admin/workers")}
           className="h-10 px-4 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
         >
-          Kthehu
+          {t("common.back")}
         </button>
       </div>
 
@@ -132,8 +134,8 @@ export default function AdminAddUser() {
               +
             </span>
             <div className="leading-tight">
-              <div className="text-sm font-semibold text-slate-900">Add User</div>
-              <div className="text-[12px] text-slate-500">Vetëm User</div>
+              <div className="text-sm font-semibold text-slate-900">{t("adminAddUser.cardTitle")}</div>
+              <div className="text-[12px] text-slate-500">{t("adminAddUser.cardNote")}</div>
             </div>
           </div>
         </div>
@@ -155,31 +157,37 @@ export default function AdminAddUser() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Full name */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-2">Emri dhe mbiemri</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("adminAddUser.fields.fullName.label")}
+              </label>
               <input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="p.sh. John Doe"
+                placeholder={t("adminAddUser.fields.fullName.placeholder")}
               />
             </div>
 
             {/* Username */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-2">Username</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("adminAddUser.fields.username.label")}
+              </label>
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="p.sh. johndoe"
+                placeholder={t("adminAddUser.fields.username.placeholder")}
                 autoComplete="off"
               />
-              <p className="mt-2 text-[11px] text-slate-500">Pa hapësira. Minimum 3 karaktere.</p>
+              <p className="mt-2 text-[11px] text-slate-500">{t("adminAddUser.fields.username.help")}</p>
             </div>
 
             {/* Department */}
             <div className={cn(needsDepartment ? "md:col-span-2" : "hidden")}>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Departamenti</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("adminAddUser.fields.department.label")}
+              </label>
 
               <div className="flex gap-2 items-center">
                 <select
@@ -188,9 +196,9 @@ export default function AdminAddUser() {
                   disabled={depsLoading || !departments.length}
                   className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50"
                 >
-                  {depsLoading ? <option value="">Duke i ngarkuar…</option> : null}
+                  {depsLoading ? <option value="">{t("adminAddUser.fields.department.loading")}</option> : null}
                   {!depsLoading && departments.length === 0 ? (
-                    <option value="">S’ka departamente</option>
+                    <option value="">{t("adminAddUser.fields.department.empty")}</option>
                   ) : null}
                   {!depsLoading &&
                     departments.map((d) => (
@@ -204,7 +212,7 @@ export default function AdminAddUser() {
                   type="button"
                   onClick={loadDepartments}
                   className="h-11 px-4 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
-                  title="Rifresko departamentet"
+                  title={t("adminAddUser.fields.department.refreshTitle")}
                 >
                   ↻
                 </button>
@@ -213,26 +221,30 @@ export default function AdminAddUser() {
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Password</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("adminAddUser.fields.password.label")}
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="Minimum 6 karaktere"
+                placeholder={t("adminAddUser.fields.password.placeholder")}
                 autoComplete="new-password"
               />
             </div>
 
             {/* Confirm password */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Konfirmo password</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("adminAddUser.fields.confirmPassword.label")}
+              </label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="Shkruaje përsëri"
+                placeholder={t("adminAddUser.fields.confirmPassword.placeholder")}
                 autoComplete="new-password"
               />
             </div>
@@ -244,7 +256,7 @@ export default function AdminAddUser() {
               disabled={loading}
               className="h-11 px-5 rounded-2xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Duke krijuar..." : "Krijo përdorues"}
+              {loading ? t("adminAddUser.actions.creating") : t("adminAddUser.actions.create")}
             </button>
 
             <button
@@ -252,7 +264,7 @@ export default function AdminAddUser() {
               onClick={() => navigate("/admin/workers")}
               className="h-11 px-5 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
             >
-              Anulo
+              {t("common.cancel")}
             </button>
           </div>
         </form>

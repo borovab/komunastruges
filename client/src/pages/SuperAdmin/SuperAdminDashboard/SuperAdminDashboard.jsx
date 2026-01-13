@@ -1,13 +1,16 @@
-// AdminDashboard.jsx (FULL) - statistika + grafik 7-ditor + LISTA E USERAVE
-// ✅ updated for backend: timeOut/timeReturn, departmentName, reasonChoice/reasonText (no timeLeft)
+// src/pages/SuperAdmin/SuperAdminDashboard/SuperAdminDashboard.jsx (FULL)
+// ✅ i18n (NO SQ fallback) + hide superadmin + export CSV + stats + users list
 import React from "react";
 import { api } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext"; // 🔁 ndrysho path sipas projektit
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
 
 export default function SuperAdminDashboard() {
+  const { t } = useLang();
+
   const [reports, setReports] = React.useState([]);
   const [users, setUsers] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -24,11 +27,12 @@ export default function SuperAdminDashboard() {
     setErr("");
     try {
       const [r, u] = await Promise.all([api.listReports(), api.listUsers()]);
-      setReports(r.reports || []);
+      setReports(r?.reports || []);
+
       // ✅ shfaq userat (pa superadmin)
-      setUsers((u.users || []).filter((x) => String(x?.role || "").trim().toLowerCase() !== "superadmin"));
+      setUsers((u?.users || []).filter((x) => String(x?.role || "").trim().toLowerCase() !== "superadmin"));
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("superAdminDashboard.errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -36,6 +40,7 @@ export default function SuperAdminDashboard() {
 
   React.useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const createUser = async (e) => {
@@ -52,10 +57,10 @@ export default function SuperAdminDashboard() {
       setUFullName("");
       setUUsername("");
       setUPassword("");
-      setOkMsg("Punëtori u shtua me sukses.");
+      setOkMsg(t("superAdminDashboard.ok.workerAdded"));
       await load();
     } catch (e2) {
-      setErr(e2?.message || "Gabim");
+      setErr(e2?.message || t("superAdminDashboard.errors.generic"));
     }
   };
 
@@ -64,10 +69,10 @@ export default function SuperAdminDashboard() {
     setOkMsg("");
     try {
       await api.reviewReport(id);
-      setOkMsg("Raporti u shënua si reviewed.");
+      setOkMsg(t("superAdminDashboard.ok.reportReviewed"));
       await load();
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("superAdminDashboard.errors.generic"));
     }
   };
 
@@ -78,23 +83,23 @@ export default function SuperAdminDashboard() {
   };
 
   const formatReason = (r) => {
-    const choice = String(r.reasonChoice || r.reason || "").trim();
-    const text = String(r.reasonText || "").trim();
+    const choice = String(r?.reasonChoice || r?.reason || "").trim();
+    const text = String(r?.reasonText || "").trim();
     if (text) return choice ? `${choice} - ${text}` : text;
     return choice;
   };
 
   const exportExcel = () => {
     const headers = [
-      "Emri",
-      "Statusi",
-      "Data",
-      "Ora e daljes",
-      "Ora e kthimit",
-      "Drejtoria/Sektori",
-      "Arsyeja",
-      "Krijuar",
-      "Reviewed",
+      t("superAdminDashboard.export.headers.fullName"),
+      t("superAdminDashboard.export.headers.status"),
+      t("superAdminDashboard.export.headers.date"),
+      t("superAdminDashboard.export.headers.timeOut"),
+      t("superAdminDashboard.export.headers.timeReturn"),
+      t("superAdminDashboard.export.headers.department"),
+      t("superAdminDashboard.export.headers.reason"),
+      t("superAdminDashboard.export.headers.createdAt"),
+      t("superAdminDashboard.export.headers.reviewedAt"),
     ];
 
     const rows = (reports || []).map((r) => [
@@ -201,8 +206,8 @@ export default function SuperAdminDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Admin • Panel</h2>
-          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">Statistika + të gjitha raportet + userat.</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">{t("superAdminDashboard.headerTitle")}</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">{t("superAdminDashboard.headerSubtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:flex sm:items-center gap-2">
@@ -211,7 +216,7 @@ export default function SuperAdminDashboard() {
             className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
             onClick={load}
           >
-            Rifresko
+            {t("superAdminDashboard.actions.refresh")}
           </button>
 
           <button
@@ -219,9 +224,9 @@ export default function SuperAdminDashboard() {
             className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
             onClick={exportExcel}
             disabled={loading || reports.length === 0}
-            title={reports.length === 0 ? "S’ka raporte për eksport" : "Eksporto raportet"}
+            title={reports.length === 0 ? t("superAdminDashboard.actions.exportTitleEmpty") : t("superAdminDashboard.actions.exportTitle")}
           >
-            Eksporto (Excel)
+            {t("superAdminDashboard.actions.export")}
           </button>
         </div>
       </div>
@@ -240,17 +245,39 @@ export default function SuperAdminDashboard() {
 
       {/* STATS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4">
-        <StatCard title="Raporte totale" value={totalReports} sub={`Sot: ${reportsToday}`} tone="blue" />
-        <StatCard title="Pending" value={pendingReports} sub="Raporte pa review" tone="amber" />
-        <StatCard title="Reviewed" value={reviewedReports} sub="Raporte të verifikuara" tone="emerald" />
-        <StatCard title="Punëtorë" value={onlyWorkers} sub={`Admin: ${admins} • Total: ${totalUsers}`} tone="rose" />
+        <StatCard
+          title={t("superAdminDashboard.stats.totalReports")}
+          value={totalReports}
+          sub={t("superAdminDashboard.stats.today", { n: reportsToday })}
+          tone="blue"
+        />
+        <StatCard
+          title={t("superAdminDashboard.stats.pending")}
+          value={pendingReports}
+          sub={t("superAdminDashboard.stats.pendingSub")}
+          tone="amber"
+        />
+        <StatCard
+          title={t("superAdminDashboard.stats.reviewed")}
+          value={reviewedReports}
+          sub={t("superAdminDashboard.stats.reviewedSub")}
+          tone="emerald"
+        />
+        <StatCard
+          title={t("superAdminDashboard.stats.workers")}
+          value={onlyWorkers}
+          sub={t("superAdminDashboard.stats.workersSub", { admins, total: totalUsers })}
+          tone="rose"
+        />
       </div>
 
       {/* Mini chart 7 days */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-3 sm:p-4 mb-5">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Raporte (7 ditët e fundit)</div>
-          <div className="text-[11px] text-slate-500">Max/ditë: {max7}</div>
+          <div className="text-[13px] sm:text-sm font-semibold text-slate-900">
+            {t("superAdminDashboard.chart.title")}
+          </div>
+          <div className="text-[11px] text-slate-500">{t("superAdminDashboard.chart.maxPerDay", { n: max7 })}</div>
         </div>
 
         <div className="mt-3 grid grid-cols-7 gap-1.5 sm:gap-2 items-end">
@@ -273,11 +300,13 @@ export default function SuperAdminDashboard() {
 
       {/* Reports list */}
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-[13px] sm:text-sm font-semibold text-slate-900">Të gjitha raportet</h3>
-        {loading ? <div className="text-[12px] text-slate-500">Loading…</div> : null}
+        <h3 className="text-[13px] sm:text-sm font-semibold text-slate-900">{t("superAdminDashboard.reports.title")}</h3>
+        {loading ? <div className="text-[12px] text-slate-500">{t("common.loading")}</div> : null}
       </div>
 
-      {!loading && reports.length === 0 ? <div className="text-[13px] text-slate-500">S’ka raporte.</div> : null}
+      {!loading && reports.length === 0 ? (
+        <div className="text-[13px] text-slate-500">{t("superAdminDashboard.reports.empty")}</div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
         {reports.map((r) => {
@@ -286,9 +315,10 @@ export default function SuperAdminDashboard() {
             <div key={r.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-3 sm:p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">{r.fullName}</div>
+                  <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">{r.fullName || "—"}</div>
                   <div className="mt-1 text-[11px] sm:text-[12px] text-slate-500">
-                    {r.date} • {r.timeOut} - {r.timeReturn} {r.departmentName ? `• ${r.departmentName}` : ""}
+                    {r.date || "—"} • {r.timeOut || "—"} - {r.timeReturn || "—"}
+                    {r.departmentName ? ` • ${r.departmentName}` : ""}
                   </div>
                 </div>
 
@@ -300,11 +330,13 @@ export default function SuperAdminDashboard() {
                       : "bg-amber-50 text-amber-800 border-amber-200"
                   )}
                 >
-                  {reviewed ? "reviewed" : "pending"}
+                  {reviewed ? t("superAdminDashboard.reports.badges.reviewed") : t("superAdminDashboard.reports.badges.pending")}
                 </span>
               </div>
 
-              <div className="mt-2.5 text-[13px] sm:text-sm text-slate-700 whitespace-pre-wrap">{formatReason(r)}</div>
+              <div className="mt-2.5 text-[13px] sm:text-sm text-slate-700 whitespace-pre-wrap">
+                {formatReason(r) || "—"}
+              </div>
 
               <div className="mt-3 flex items-center justify-between gap-3">
                 {!reviewed ? (
@@ -313,11 +345,12 @@ export default function SuperAdminDashboard() {
                     className="h-9 px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition text-[13px] font-semibold"
                     onClick={() => review(r.id)}
                   >
-                    Verifikoje.
+                    {t("superAdminDashboard.reports.actions.verify")}
                   </button>
                 ) : (
                   <div className="text-[11px] text-slate-500">
-                    Verifikuar: {r.reviewedAt ? new Date(r.reviewedAt).toLocaleString() : "-"}
+                    {t("superAdminDashboard.reports.reviewedAt")}{" "}
+                    {r.reviewedAt ? new Date(r.reviewedAt).toLocaleString() : "—"}
                   </div>
                 )}
               </div>
@@ -329,11 +362,13 @@ export default function SuperAdminDashboard() {
       {/* ✅ Users list */}
       <div className="mt-6">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-[13px] sm:text-sm font-semibold text-slate-900">Të gjithë userat</h3>
-          <div className="text-[11px] text-slate-500">Total: {users.length}</div>
+          <h3 className="text-[13px] sm:text-sm font-semibold text-slate-900">{t("superAdminDashboard.users.title")}</h3>
+          <div className="text-[11px] text-slate-500">{t("superAdminDashboard.users.total", { n: users.length })}</div>
         </div>
 
-        {!loading && users.length === 0 ? <div className="text-[13px] text-slate-500">S’ka usera.</div> : null}
+        {!loading && users.length === 0 ? (
+          <div className="text-[13px] text-slate-500">{t("superAdminDashboard.users.empty")}</div>
+        ) : null}
 
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="divide-y divide-slate-200">
@@ -341,13 +376,15 @@ export default function SuperAdminDashboard() {
               <div key={u.id} className="px-3 sm:px-5 py-3 sm:py-4 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">
-                    {u.fullName || "-"}
+                    {u.fullName || "—"}
                   </div>
                   <div className="mt-1 text-[11px] sm:text-[12px] text-slate-500 truncate flex flex-wrap items-center gap-2">
-                    <span>@{u.username || "-"}</span>
+                    <span>@{u.username || "—"}</span>
+
                     <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
                       {(u.role || "user").toLowerCase()}
                     </span>
+
                     {u.departmentName ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
                         {u.departmentName}
@@ -356,7 +393,8 @@ export default function SuperAdminDashboard() {
                   </div>
 
                   <div className="mt-2 text-[10px] sm:text-[11px] text-slate-500">
-                    Krijuar: {u.createdAt ? new Date(u.createdAt).toLocaleString() : "-"}
+                    {t("superAdminDashboard.users.created")}{" "}
+                    {u.createdAt ? new Date(u.createdAt).toLocaleString() : "—"}
                   </div>
                 </div>
               </div>

@@ -1,5 +1,7 @@
+// ManagerDashboard.jsx
 import React from "react";
 import { api, getSession } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext";
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
@@ -13,6 +15,8 @@ function formatReason(r) {
 }
 
 export default function ManagerDashboard() {
+  const { t } = useLang();
+
   const s = getSession();
   const depId = s?.user?.departmentId || null;
 
@@ -41,7 +45,7 @@ export default function ManagerDashboard() {
         setUsers([]);
       }
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -120,8 +124,8 @@ export default function ManagerDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Manager • Panel</h2>
-          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">Statistika + raportet e departamentit.</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">{t("managerDashboard.headerTitle")}</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">{t("managerDashboard.headerSubtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:flex sm:items-center gap-2">
@@ -130,7 +134,7 @@ export default function ManagerDashboard() {
             className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
             onClick={load}
           >
-            Rifresko
+            {t("managerDashboard.actions.refresh")}
           </button>
         </div>
       </div>
@@ -148,16 +152,38 @@ export default function ManagerDashboard() {
       ) : null}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4">
-        <StatCard title="Raporte totale" value={totalReports} sub={`Sot: ${reportsToday}`} tone="blue" />
-        <StatCard title="Pending" value={pendingReports} sub="Pa review" tone="amber" />
-        <StatCard title="Të verifikuara" value={reviewedReports} sub="Të verifikuara" tone="emerald" />
-        <StatCard title="Punëtorë" value={users.length} sub="Departamenti yt" tone="rose" />
+        <StatCard
+          title={t("managerDashboard.stats.totalReports.title")}
+          value={totalReports}
+          sub={t("managerDashboard.stats.totalReports.subToday", { n: reportsToday })}
+          tone="blue"
+        />
+        <StatCard
+          title={t("managerDashboard.stats.pending.title")}
+          value={pendingReports}
+          sub={t("managerDashboard.stats.pending.sub")}
+          tone="amber"
+        />
+        <StatCard
+          title={t("managerDashboard.stats.reviewed.title")}
+          value={reviewedReports}
+          sub={t("managerDashboard.stats.reviewed.sub")}
+          tone="emerald"
+        />
+        <StatCard
+          title={t("managerDashboard.stats.workers.title")}
+          value={users.length}
+          sub={t("managerDashboard.stats.workers.sub")}
+          tone="rose"
+        />
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-3 sm:p-4 mb-5">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Raporte (7 ditët e fundit)</div>
-          <div className="text-[11px] text-slate-500">{loading ? "Loading…" : `Max/ditë: ${max7}`}</div>
+          <div className="text-[13px] sm:text-sm font-semibold text-slate-900">{t("managerDashboard.chart.title")}</div>
+          <div className="text-[11px] text-slate-500">
+            {loading ? t("managerDashboard.alerts.loading") : t("managerDashboard.chart.maxPerDay", { n: max7 })}
+          </div>
         </div>
 
         <div className="mt-3 grid grid-cols-7 gap-1.5 sm:gap-2 items-end">
@@ -179,11 +205,13 @@ export default function ManagerDashboard() {
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-[13px] sm:text-sm font-semibold text-slate-900">Raportet e fundit</h3>
-        {loading ? <div className="text-[12px] text-slate-500">Loading…</div> : null}
+        <h3 className="text-[13px] sm:text-sm font-semibold text-slate-900">{t("managerDashboard.latest.title")}</h3>
+        {loading ? <div className="text-[12px] text-slate-500">{t("managerDashboard.alerts.loading")}</div> : null}
       </div>
 
-      {!loading && reports.length === 0 ? <div className="text-[13px] text-slate-500">S’ka raporte.</div> : null}
+      {!loading && reports.length === 0 ? (
+        <div className="text-[13px] text-slate-500">{t("managerDashboard.latest.empty")}</div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
         {reports.slice(0, 6).map((r) => {
@@ -207,7 +235,7 @@ export default function ManagerDashboard() {
                       : "bg-amber-50 text-amber-800 border-amber-200"
                   )}
                 >
-                  {reviewed ? "reviewed" : "pending"}
+                  {reviewed ? t("managerDashboard.status.reviewed") : t("managerDashboard.status.pending")}
                 </span>
               </div>
 

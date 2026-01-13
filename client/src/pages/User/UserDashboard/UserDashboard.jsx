@@ -1,6 +1,8 @@
 // src/pages/User/UserDashboard/UserDashboard.jsx
+// ✅ i18n (NO SQ fallback) + REASONS translated by lang + all UI strings via t()
 import React from "react";
 import { api, getSession } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext"; // 🔁 ndrysho path sipas projektit
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
@@ -19,8 +21,6 @@ function todayYMD() {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
-
-const REASONS = ["Detyrë zyrtare", "Dalje në terren", "Pushim personal", "Arsye shëndetësore", "Tjetër"];
 
 function IconBuilding({ className = "" }) {
   return (
@@ -54,8 +54,11 @@ function IconBack({ className = "" }) {
 }
 
 export default function UserDashboard() {
+  const { t } = useLang();
   const session = typeof getSession === "function" ? getSession() : null;
   const me = session?.user || null;
+
+  const REASONS = React.useMemo(() => t("userDashboard.reasons"), [t]);
 
   const [mView, setMView] = React.useState("home"); // home | form | list
 
@@ -72,7 +75,7 @@ export default function UserDashboard() {
   const [timeReturn, setTimeReturn] = React.useState("");
   const [reasonChoice, setReasonChoice] = React.useState("");
   const [reasonText, setReasonText] = React.useState("");
-  const [raport, setRaport] = React.useState(""); // ✅ NEW (opsionale)
+  const [raport, setRaport] = React.useState(""); // opsionale
 
   const load = async () => {
     setLoading(true);
@@ -81,7 +84,7 @@ export default function UserDashboard() {
       const r = await api.listReports();
       setReports(r.reports || []);
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("userDashboard.errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -116,7 +119,7 @@ export default function UserDashboard() {
     setTimeReturn("");
     setReasonChoice("");
     setReasonText("");
-    setRaport(""); // ✅ NEW
+    setRaport("");
   };
 
   const submit = async (e) => {
@@ -124,29 +127,28 @@ export default function UserDashboard() {
     setErr("");
     setOkMsg("");
 
-    if (!reasonChoice) return setErr("Zgjidh arsyen.");
-    if (!date) return setErr("Zgjidh datën.");
-    if (!timeOut) return setErr("Zgjidh orën e daljes.");
-    // ✅ timeReturn opsionale
+    if (!reasonChoice) return setErr(t("userDashboard.errors.chooseReason"));
+    if (!date) return setErr(t("userDashboard.errors.chooseDate"));
+    if (!timeOut) return setErr(t("userDashboard.errors.chooseTimeOut"));
 
     try {
       const payload = {
         reasonChoice,
         reasonText,
-        ...(raport ? { raport } : {}), // ✅ NEW (mos e dërgo fare kur është bosh)
+        ...(raport ? { raport } : {}),
         date,
         timeOut,
-        ...(timeReturn ? { timeReturn } : {}), // ✅ mos e dërgo fare kur është bosh
+        ...(timeReturn ? { timeReturn } : {}),
       };
 
       await api.createReport(payload);
 
       resetForm();
-      setOkMsg("Raporti u dërgua me sukses.");
+      setOkMsg(t("userDashboard.ok.submitted"));
       await load();
       setMView("list");
     } catch (e2) {
-      setErr(e2?.message || "Gabim");
+      setErr(e2?.message || t("userDashboard.errors.generic"));
     }
   };
 
@@ -163,7 +165,7 @@ export default function UserDashboard() {
                 setMView("home");
               }}
               className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/15 transition flex items-center justify-center"
-              aria-label="Back"
+              aria-label={t("userDashboard.actions.back")}
             >
               <IconBack className="text-white" />
             </button>
@@ -198,8 +200,8 @@ export default function UserDashboard() {
             <IconPlus className="text-white" />
           </div>
           <div className="text-left">
-            <div className="text-white font-bold text-base">Regjistro dalje</div>
-            <div className="text-white/85 text-xs">Regjistro dalje me 1 klik</div>
+            <div className="text-white font-bold text-base">{t("userDashboard.home.primary.title")}</div>
+            <div className="text-white/85 text-xs">{t("userDashboard.home.primary.sub")}</div>
           </div>
         </div>
       </button>
@@ -218,15 +220,15 @@ export default function UserDashboard() {
             <IconClipboard className="text-[#1f5f93]" />
           </div>
           <div className="text-left">
-            <div className="text-slate-900 font-bold text-base">Daljet e mia</div>
-            <div className="text-slate-500 text-xs">Evidenca e daljeve</div>
+            <div className="text-slate-900 font-bold text-base">{t("userDashboard.home.secondary.title")}</div>
+            <div className="text-slate-500 text-xs">{t("userDashboard.home.secondary.sub")}</div>
           </div>
         </div>
       </button>
 
       <div className="pt-1 flex items-center justify-end">
         <button type="button" onClick={load} className="text-xs font-semibold text-slate-600 hover:text-slate-900">
-          Rifresko
+          {t("userDashboard.actions.refresh")}
         </button>
       </div>
     </div>
@@ -242,27 +244,31 @@ export default function UserDashboard() {
   const renderMobileForm = () => (
     <form onSubmit={submit} className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
-        <div className="text-sm font-semibold text-slate-900">Regjistro Daljen</div>
+        <div className="text-sm font-semibold text-slate-900">{t("userDashboard.form.title")}</div>
       </div>
 
       <div className="p-4 space-y-3">
         <div>
-          <label className={MobileLabel}>Emri dhe Mbiemri</label>
+          <label className={MobileLabel}>{t("userDashboard.form.fields.fullName")}</label>
           <input value={me?.fullName || ""} readOnly className={MobileROInput} placeholder="—" />
         </div>
 
         <div>
-          <label className={MobileLabel}>ID e Punës</label>
+          <label className={MobileLabel}>{t("userDashboard.form.fields.workId")}</label>
           <input value={me?.username || me?.id || ""} readOnly className={MobileROInput} placeholder="—" />
         </div>
 
         <div>
-          <label className={MobileLabel}>Drejtoria / Sektori</label>
-          <input value={deptLoading ? "Duke ngarkuar…" : deptName || "—"} readOnly className={MobileROInput} />
+          <label className={MobileLabel}>{t("userDashboard.form.fields.department")}</label>
+          <input
+            value={deptLoading ? t("userDashboard.loading") : deptName || "—"}
+            readOnly
+            className={MobileROInput}
+          />
         </div>
 
         <div>
-          <label className={MobileLabel}>Arsyeja e daljes</label>
+          <label className={MobileLabel}>{t("userDashboard.form.fields.reason")}</label>
           <div className="space-y-1.5">
             {REASONS.map((r) => (
               <label key={r} className="flex items-center gap-2 text-xs text-slate-700">
@@ -281,18 +287,18 @@ export default function UserDashboard() {
 
         <div className="grid grid-cols-1 gap-3">
           <div>
-            <label className={MobileLabel}>Data</label>
+            <label className={MobileLabel}>{t("userDashboard.form.fields.date")}</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={MobileInput} />
           </div>
 
           <div className="grid grid-cols-1 gap-3">
             <div>
-              <label className={MobileLabel}>Ora e daljes</label>
+              <label className={MobileLabel}>{t("userDashboard.form.fields.timeOut")}</label>
               <input type="time" value={timeOut} onChange={(e) => setTimeOut(e.target.value)} className={MobileInput} />
             </div>
 
             <div>
-              <label className={MobileLabel}>Ora e kthimit (opsionale)</label>
+              <label className={MobileLabel}>{t("userDashboard.form.fields.timeReturn")}</label>
               <input
                 type="time"
                 value={timeReturn}
@@ -304,7 +310,7 @@ export default function UserDashboard() {
         </div>
 
         <div className="relative z-10">
-          <label className={MobileLabel}>Shënim (opsionale)</label>
+          <label className={MobileLabel}>{t("userDashboard.form.fields.note")}</label>
           <textarea
             value={reasonText}
             onChange={(e) => setReasonText(e.target.value)}
@@ -312,13 +318,12 @@ export default function UserDashboard() {
               if (e.key === "Enter") e.stopPropagation();
             }}
             className={MobileTextarea}
-            placeholder="Shkruaj shënim..."
+            placeholder={t("userDashboard.form.placeholders.note")}
           />
         </div>
 
-        {/* ✅ NEW */}
         <div className="relative z-10">
-          <label className={MobileLabel}>Raport (opsionale)</label>
+          <label className={MobileLabel}>{t("userDashboard.form.fields.raport")}</label>
           <textarea
             value={raport}
             onChange={(e) => setRaport(e.target.value)}
@@ -326,7 +331,7 @@ export default function UserDashboard() {
               if (e.key === "Enter") e.stopPropagation();
             }}
             className={MobileTextarea}
-            placeholder="Shkruaj raport..."
+            placeholder={t("userDashboard.form.placeholders.raport")}
           />
         </div>
       </div>
@@ -340,7 +345,7 @@ export default function UserDashboard() {
             loading ? "bg-[#1f5f93]/70 cursor-not-allowed" : "bg-[#1f5f93] hover:bg-[#194f7a]"
           )}
         >
-          {loading ? "Duke dërguar…" : "SUBMIT"}
+          {loading ? t("userDashboard.actions.submitting") : t("userDashboard.actions.submit")}
         </button>
       </div>
     </form>
@@ -350,26 +355,30 @@ export default function UserDashboard() {
     <div className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
         <div>
-          <div className="text-sm font-semibold text-slate-900">Evidenca e daljeve</div>
-          <div className="text-[12px] text-slate-500">{reports.length} dalje</div>
+          <div className="text-sm font-semibold text-slate-900">{t("userDashboard.list.title")}</div>
+          <div className="text-[12px] text-slate-500">
+            {reports.length} {t("userDashboard.list.count")}
+          </div>
         </div>
         <button type="button" onClick={load} className="text-xs font-semibold text-slate-600 hover:text-slate-900">
-          Rifresko
+          {t("userDashboard.actions.refresh")}
         </button>
       </div>
 
-      {!loading && reports.length === 0 ? <div className="p-4 text-sm text-slate-500">S’ka dalje ende.</div> : null}
-      {loading ? <div className="p-4 text-sm text-slate-500">Loading…</div> : null}
+      {!loading && reports.length === 0 ? (
+        <div className="p-4 text-sm text-slate-500">{t("userDashboard.list.empty")}</div>
+      ) : null}
+      {loading ? <div className="p-4 text-sm text-slate-500">{t("userDashboard.loading")}</div> : null}
 
       {!loading && reports.length > 0 ? (
         <div className="overflow-auto">
           <table className="w-full text-xs">
             <thead className="bg-white">
               <tr className="text-left text-slate-600">
-                <th className="px-3 py-2 font-semibold whitespace-nowrap">Data</th>
-                <th className="px-3 py-2 font-semibold whitespace-nowrap">Emri</th>
-                <th className="px-3 py-2 font-semibold whitespace-nowrap">Drejtoria</th>
-                <th className="px-3 py-2 font-semibold whitespace-nowrap">Detaje</th>
+                <th className="px-3 py-2 font-semibold whitespace-nowrap">{t("userDashboard.list.cols.date")}</th>
+                <th className="px-3 py-2 font-semibold whitespace-nowrap">{t("userDashboard.list.cols.name")}</th>
+                <th className="px-3 py-2 font-semibold whitespace-nowrap">{t("userDashboard.list.cols.department")}</th>
+                <th className="px-3 py-2 font-semibold whitespace-nowrap">{t("userDashboard.list.cols.details")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -385,14 +394,13 @@ export default function UserDashboard() {
                       <div className="text-[11px] text-slate-500 truncate max-w-[220px]">{r.reasonText}</div>
                     ) : null}
 
-                    {/* ✅ NEW */}
                     {r.raport ? (
                       <div className="text-[11px] text-slate-500 truncate max-w-[220px]">{r.raport}</div>
                     ) : null}
 
                     <div className="mt-1 text-[11px] text-slate-500">
-                      {r.timeOut || r.timeLeft ? `Dalja: ${r.timeOut || r.timeLeft}` : ""}
-                      {r.timeReturn ? ` • Kthimi: ${r.timeReturn}` : ""}
+                      {r.timeOut || r.timeLeft ? `${t("userDashboard.list.labels.timeOut")}: ${r.timeOut || r.timeLeft}` : ""}
+                      {r.timeReturn ? ` • ${t("userDashboard.list.labels.timeReturn")}: ${r.timeReturn}` : ""}
                     </div>
 
                     <div className="mt-1">
@@ -421,8 +429,8 @@ export default function UserDashboard() {
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="flex items-start justify-between gap-3 mb-5">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Raporto dalje më herët</h2>
-          <p className="text-sm text-slate-500 mt-1">Plotëso raportin dhe shiko raportet e tua.</p>
+          <h2 className="text-lg font-bold text-slate-900">{t("userDashboard.desktop.header.title")}</h2>
+          <p className="text-sm text-slate-500 mt-1">{t("userDashboard.desktop.header.subtitle")}</p>
         </div>
 
         <button
@@ -430,7 +438,7 @@ export default function UserDashboard() {
           onClick={load}
           className="h-10 px-4 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
         >
-          Rifresko
+          {t("userDashboard.actions.refresh")}
         </button>
       </div>
 
@@ -446,14 +454,14 @@ export default function UserDashboard() {
 
       <form onSubmit={submit} className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
-          <div className="text-sm font-semibold text-slate-900">Dërgo raportim</div>
-          <div className="text-[12px] text-slate-500">Plotëso fushat poshtë.</div>
+          <div className="text-sm font-semibold text-slate-900">{t("userDashboard.desktop.form.title")}</div>
+          <div className="text-[12px] text-slate-500">{t("userDashboard.desktop.form.subtitle")}</div>
         </div>
 
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Data</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">{t("userDashboard.form.fields.date")}</label>
               <input
                 type="date"
                 value={date}
@@ -463,7 +471,7 @@ export default function UserDashboard() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Ora e daljes</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">{t("userDashboard.form.fields.timeOut")}</label>
               <input
                 type="time"
                 value={timeOut}
@@ -473,7 +481,9 @@ export default function UserDashboard() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Ora e kthimit (opsionale)</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("userDashboard.form.fields.timeReturn")}
+              </label>
               <input
                 type="time"
                 value={timeReturn}
@@ -484,7 +494,7 @@ export default function UserDashboard() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-2">Arsyeja e daljes</label>
+            <label className="block text-xs font-medium text-slate-700 mb-2">{t("userDashboard.form.fields.reason")}</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {REASONS.map((r) => (
                 <label
@@ -508,7 +518,7 @@ export default function UserDashboard() {
           </div>
 
           <div className="relative z-10">
-            <label className="block text-xs font-medium text-slate-700 mb-2">Shënim / Arsye (opsionale)</label>
+            <label className="block text-xs font-medium text-slate-700 mb-2">{t("userDashboard.form.fields.note")}</label>
             <textarea
               value={reasonText}
               onChange={(e) => setReasonText(e.target.value)}
@@ -516,13 +526,12 @@ export default function UserDashboard() {
                 if (e.key === "Enter") e.stopPropagation();
               }}
               className="w-full min-h-[110px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-              placeholder="Shkruaj shënim..."
+              placeholder={t("userDashboard.form.placeholders.note")}
             />
           </div>
 
-          {/* ✅ NEW */}
           <div className="relative z-10">
-            <label className="block text-xs font-medium text-slate-700 mb-2">Raport (opsionale)</label>
+            <label className="block text-xs font-medium text-slate-700 mb-2">{t("userDashboard.form.fields.raport")}</label>
             <textarea
               value={raport}
               onChange={(e) => setRaport(e.target.value)}
@@ -530,7 +539,7 @@ export default function UserDashboard() {
                 if (e.key === "Enter") e.stopPropagation();
               }}
               className="w-full min-h-[110px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-              placeholder="Shkruaj raport..."
+              placeholder={t("userDashboard.form.placeholders.raport")}
             />
           </div>
         </div>
@@ -544,7 +553,7 @@ export default function UserDashboard() {
             type="submit"
             disabled={loading}
           >
-            {loading ? "Duke dërguar…" : "Dërgo raportin"}
+            {loading ? t("userDashboard.actions.submitting") : t("userDashboard.desktop.form.submit")}
           </button>
         </div>
       </form>
@@ -552,13 +561,17 @@ export default function UserDashboard() {
       <div className="mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div>
-            <div className="text-sm font-semibold text-slate-900">Raportet e mia</div>
-            <div className="text-[12px] text-slate-500">{reports.length} raporte</div>
+            <div className="text-sm font-semibold text-slate-900">{t("userDashboard.desktop.list.title")}</div>
+            <div className="text-[12px] text-slate-500">
+              {reports.length} {t("userDashboard.desktop.list.count")}
+            </div>
           </div>
-          {loading ? <div className="text-sm text-slate-500">Loading…</div> : null}
+          {loading ? <div className="text-sm text-slate-500">{t("userDashboard.loading")}</div> : null}
         </div>
 
-        {!loading && reports.length === 0 ? <div className="p-6 text-sm text-slate-500">S’ka raporte ende.</div> : null}
+        {!loading && reports.length === 0 ? (
+          <div className="p-6 text-sm text-slate-500">{t("userDashboard.desktop.list.empty")}</div>
+        ) : null}
 
         {!loading && reports.length > 0 ? (
           <div className="overflow-auto">
@@ -566,14 +579,14 @@ export default function UserDashboard() {
               <thead className="bg-white">
                 <tr className="text-left text-slate-600">
                   <th className="px-4 py-3 font-semibold w-[70px]">#</th>
-                  <th className="px-4 py-3 font-semibold">Data</th>
-                  <th className="px-4 py-3 font-semibold">Ora e daljes</th>
-                  <th className="px-4 py-3 font-semibold">Ora e kthimit</th>
-                  <th className="px-4 py-3 font-semibold">Arsye</th>
-                  <th className="px-4 py-3 font-semibold">Raport</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Drejtoria</th>
-                  <th className="px-4 py-3 font-semibold">Krijuar</th>
+                  <th className="px-4 py-3 font-semibold">{t("userDashboard.desktop.table.date")}</th>
+                  <th className="px-4 py-3 font-semibold">{t("userDashboard.desktop.table.timeOut")}</th>
+                  <th className="px-4 py-3 font-semibold">{t("userDashboard.desktop.table.timeReturn")}</th>
+                  <th className="px-4 py-3 font-semibold">{t("userDashboard.desktop.table.reason")}</th>
+                  <th className="px-4 py-3 font-semibold">{t("userDashboard.desktop.table.raport")}</th>
+                  <th className="px-4 py-3 font-semibold">{t("userDashboard.desktop.table.status")}</th>
+                  <th className="px-4 py-3 font-semibold">{t("userDashboard.desktop.table.department")}</th>
+                  <th className="px-4 py-3 font-semibold">{t("userDashboard.desktop.table.createdAt")}</th>
                 </tr>
               </thead>
 
@@ -621,8 +634,14 @@ export default function UserDashboard() {
     <>
       <div className="sm:hidden max-w-md mx-auto px-4 py-6">
         <MobileTopBar
-          title={mView === "form" ? "Regjistro Daljen" : "Daljet nga objekti"}
-          subtitle="Komuna e Strugës"
+          title={
+            mView === "form"
+              ? t("userDashboard.mobile.top.formTitle")
+              : mView === "list"
+              ? t("userDashboard.mobile.top.listTitle")
+              : t("userDashboard.mobile.top.homeTitle")
+          }
+          subtitle={t("userDashboard.mobile.top.subtitle")}
           back={mView !== "home"}
         />
 

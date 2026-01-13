@@ -1,8 +1,10 @@
-// Sidebar.jsx (NO HeroUI) - Settings replaced with "Profili im"
+// Sidebar.jsx (NO HeroUI) - Settings replaced with "Profili im" + language flags (top-right)
+// ✅ i18n (NO SQ fallback) + all UI strings via t()
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api, clearSession, getSession } from "../../lib/api";
 import logo from "../../assets/logo.png"; // 🔁 ndrysho path nëse logo-ja është tjetër
+import { useLang } from "../../contexts/LanguageContext";
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
@@ -40,11 +42,12 @@ export default function Sidebar({ className = "" }) {
   const navigate = useNavigate();
   const location = useLocation();
   const s = getSession();
+  const { lang, setLang, t } = useLang();
 
   // ✅ FIX: normalize role (handles "Manager", " manager ", etc.)
   const role = String(s?.user?.role || "").trim().toLowerCase();
 
-  const fullName = s?.user?.fullName || "User";
+  const fullName = s?.user?.fullName || t("sidebar.fallbacks.user");
   const username = s?.user?.username || "";
 
   const logout = async () => {
@@ -61,7 +64,7 @@ export default function Sidebar({ className = "" }) {
     role === "admin"
       ? [
           {
-            label: "Panel",
+            label: t("sidebar.links.admin.panel"),
             path: "/admin",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -74,7 +77,7 @@ export default function Sidebar({ className = "" }) {
             ),
           },
           {
-            label: "Raportimet",
+            label: t("sidebar.links.admin.reports"),
             path: "/admin/raportimet",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -89,9 +92,8 @@ export default function Sidebar({ className = "" }) {
             ),
           },
 
-          // ✅ NEW: Departamentet
           {
-            label: "Departamentet",
+            label: t("sidebar.links.admin.departments"),
             path: "/admin/departments",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -111,7 +113,7 @@ export default function Sidebar({ className = "" }) {
           },
 
           {
-            label: "Punëtorët",
+            label: t("sidebar.links.admin.workers"),
             path: "/admin/workers",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -125,7 +127,7 @@ export default function Sidebar({ className = "" }) {
             ),
           },
           {
-            label: "Shto përdorues",
+            label: t("sidebar.links.admin.addUser"),
             path: "/admin/add-user",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -142,7 +144,7 @@ export default function Sidebar({ className = "" }) {
       : role === "superadmin"
       ? [
           {
-            label: "Panel",
+            label: t("sidebar.links.superadmin.panel"),
             path: "/superadmin",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -155,7 +157,7 @@ export default function Sidebar({ className = "" }) {
             ),
           },
           {
-            label: "Raportimet",
+            label: t("sidebar.links.superadmin.reports"),
             path: "/superadmin/raportimet",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -171,7 +173,7 @@ export default function Sidebar({ className = "" }) {
           },
 
           {
-            label: "Departamentet",
+            label: t("sidebar.links.superadmin.departments"),
             path: "/superadmin/departments",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -191,7 +193,7 @@ export default function Sidebar({ className = "" }) {
           },
 
           {
-            label: "Punëtorët",
+            label: t("sidebar.links.superadmin.workers"),
             path: "/superadmin/workers",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -205,7 +207,7 @@ export default function Sidebar({ className = "" }) {
             ),
           },
           {
-            label: "Shto përdorues",
+            label: t("sidebar.links.superadmin.addUser"),
             path: "/superadmin/add-user",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -222,7 +224,7 @@ export default function Sidebar({ className = "" }) {
       : role === "manager"
       ? [
           {
-            label: "Paneli",
+            label: t("sidebar.links.manager.panel"),
             path: "/manager",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -235,7 +237,7 @@ export default function Sidebar({ className = "" }) {
             ),
           },
           {
-            label: "Raportimet",
+            label: t("sidebar.links.manager.reports"),
             path: "/manager/raportimet",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -250,7 +252,7 @@ export default function Sidebar({ className = "" }) {
             ),
           },
           {
-            label: "Punëtorët",
+            label: t("sidebar.links.manager.workers"),
             path: "/manager/workers",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -264,7 +266,7 @@ export default function Sidebar({ className = "" }) {
             ),
           },
           {
-            label: "Shto Punëtorë",
+            label: t("sidebar.links.manager.addWorker"),
             path: "/manager/add-user",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -281,7 +283,7 @@ export default function Sidebar({ className = "" }) {
       : role === "user"
       ? [
           {
-            label: "Raportet e mia",
+            label: t("sidebar.links.user.myReports"),
             path: "/user",
             icon: (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
@@ -300,7 +302,7 @@ export default function Sidebar({ className = "" }) {
 
   const bottomLinks = [
     {
-      label: "Profili im",
+      label: t("sidebar.bottom.profile"),
       path:
         role === "superadmin"
           ? "/superadmin/profile"
@@ -318,21 +320,74 @@ export default function Sidebar({ className = "" }) {
     },
   ];
 
+  const FlagIcon = ({ code }) => {
+    // ✅ simplified, no nested <svg>, no invalid "class"
+    if (code === "sq") {
+      // Albania (simple)
+      return (
+        <svg viewBox="0 0 28 20" className="h-6 w-6" aria-hidden="true">
+          <rect width="28" height="20" rx="2" fill="#E41E20" />
+          <path
+            d="M14 6.2c1.2 1.2 2.4 1.8 3.7 2.1-1 1.1-2.1 1.8-3.7 2.5-1.6-.7-2.7-1.4-3.7-2.5 1.3-.3 2.5-.9 3.7-2.1Z"
+            fill="#0B0B0B"
+            opacity="0.85"
+          />
+        </svg>
+      );
+    }
+
+    // North Macedonia (simple)
+    return (
+      <svg viewBox="0 0 28 20" className="h-6 w-6" aria-hidden="true">
+        <rect width="28" height="20" rx="2" fill="#D20000" />
+        <circle cx="14" cy="10" r="4" fill="#FFE600" />
+        <path d="M14 0v6" stroke="#FFE600" strokeWidth="2" />
+        <path d="M14 14v6" stroke="#FFE600" strokeWidth="2" />
+        <path d="M0 10h8" stroke="#FFE600" strokeWidth="2" />
+        <path d="M20 10h8" stroke="#FFE600" strokeWidth="2" />
+      </svg>
+    );
+  };
+
+  const FlagBtn = ({ code, label }) => {
+    const active = lang === code;
+    return (
+      <button
+        type="button"
+        onClick={() => setLang(code)}
+        aria-label={label}
+        className={cn(
+          "h-9 px-2 grid place-items-center leading-none transition",
+          active ? "border-b-2 border-blue-600" : "border-b-2 border-transparent"
+        )}
+      >
+        <FlagIcon code={code} />
+      </button>
+    );
+  };
+
   if (!s?.user) return null;
 
   return (
     <aside className={cn("h-screen w-[280px] p-3", className)}>
       <div className="h-full rounded-3xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden">
-        {/* TOP: Logo + user name */}
-        <div className="px-4 pt-4">
-          <div className="flex items-center gap-3 min-w-0">
+        {/* TOP: Logo + user name + flags top-right */}
+        <div className="px-4 pt-4 relative">
+          <div className="absolute right-4 top-4 flex items-center gap-1">
+            <FlagBtn code="sq" label={t("sidebar.lang.sq")} />
+            <FlagBtn code="mk" label={t("sidebar.lang.mk")} />
+          </div>
+
+          <div className="flex items-center gap-3 min-w-0 pr-16">
             <div className="h-10 w-10 rounded-2xl grid place-items-center shadow-sm overflow-hidden shrink-0">
-              <img src={logo} alt="Logo" className="h-7 w-7 object-contain" draggable="false" />
+              <img src={logo} alt={t("sidebar.logoAlt")} className="h-7 w-7 object-contain" draggable="false" />
             </div>
 
             <div className="leading-tight min-w-0">
               <div className="text-sm font-semibold text-slate-800 truncate">{fullName}</div>
-              <div className="text-[11px] text-slate-500 truncate">@{username || "user"} • Raportimi i punës</div>
+              <div className="text-[11px] text-slate-500 truncate">
+                @{username || t("sidebar.fallbacks.username")}
+              </div>
             </div>
           </div>
         </div>
@@ -390,7 +445,7 @@ export default function Sidebar({ className = "" }) {
                 <path d="M13 7h7v10h-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
               </svg>
             </span>
-            <span className="text-sm font-semibold">Logout</span>
+            <span className="text-sm font-semibold">{t("sidebar.actions.logout")}</span>
           </button>
         </div>
       </div>

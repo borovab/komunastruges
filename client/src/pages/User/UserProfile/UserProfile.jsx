@@ -1,11 +1,14 @@
 import React from "react";
 import { api, getSession, setSession } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext"; // 🔁 ndrysho path sipas projektit
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
 
 export default function UserProfile() {
+  const { t } = useLang();
+
   const s = getSession();
   const user = s?.user;
 
@@ -32,7 +35,7 @@ export default function UserProfile() {
         if (cur?.user) setSession({ ...cur, user: { ...cur.user, fullName: r.user.fullName } });
       }
     } catch (e) {
-      setErr(e.message || "Gabim");
+      setErr(e?.message || t("userProfile.errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -48,9 +51,9 @@ export default function UserProfile() {
     setErr("");
     setOk("");
 
-    if (!fullName.trim()) return setErr("Shkruaj emrin dhe mbiemrin.");
-    if (password.trim() && password.length < 6) return setErr("Password-i i ri duhet të ketë së paku 6 karaktere.");
-    if (password.trim() && password !== password2) return setErr("Password-i i ri nuk përputhet.");
+    if (!fullName.trim()) return setErr(t("userProfile.errors.fullNameRequired"));
+    if (password.trim() && password.length < 6) return setErr(t("userProfile.errors.passwordMin"));
+    if (password.trim() && password !== password2) return setErr(t("userProfile.errors.passwordMatch"));
 
     setSaving(true);
     try {
@@ -67,10 +70,10 @@ export default function UserProfile() {
 
       setPassword("");
       setPassword2("");
-      setOk("Profili u ruajt.");
+      setOk(t("userProfile.ok.saved"));
       await load();
     } catch (e2) {
-      setErr(e2.message || "Gabim");
+      setErr(e2?.message || t("userProfile.errors.generic"));
     } finally {
       setSaving(false);
     }
@@ -79,23 +82,31 @@ export default function UserProfile() {
   if (!user) return null;
 
   return (
-    <div style={page}>
+    <div style={page} className="up-page">
       <div style={head}>
         <div>
-          <h2 style={title}>Profili im</h2>
-          <p style={sub}>Përditëso emrin dhe (opsionale) ndrysho password-in.</p>
+          <h2 style={title} className="up-title">
+            {t("userProfile.title")}
+          </h2>
+          <p style={sub} className="up-sub">
+            {t("userProfile.subtitle")}
+          </p>
         </div>
 
-        <span style={rolePill}>{user.role}</span>
+        <span style={rolePill} className="up-role">
+          {user.role}
+        </span>
       </div>
 
       {err ? <div style={errBox}>{err}</div> : null}
       {ok ? <div style={okBox}>{ok}</div> : null}
 
       {/* Header card */}
-      <div style={card}>
+      <div style={card} className="up-card">
         <div style={cardTop}>
-          <div style={avatar}>{(fullName || user.fullName || "U").trim().slice(0, 1).toUpperCase()}</div>
+          <div style={avatar} className="up-avatar">
+            {(fullName || user.fullName || "U").trim().slice(0, 1).toUpperCase()}
+          </div>
 
           <div style={{ lineHeight: 1.2 }}>
             <div style={nameLine}>{fullName || user.fullName}</div>
@@ -103,64 +114,69 @@ export default function UserProfile() {
           </div>
         </div>
 
-        <div style={grid2}>
+        <div style={grid2} className="up-grid2">
           <div>
-            <div style={metaLabel}>ID</div>
+            <div style={metaLabel}>{t("userProfile.meta.id")}</div>
             <div style={metaValue}>{user.id || "-"}</div>
           </div>
 
           <div>
-            <div style={metaLabel}>Roli</div>
+            <div style={metaLabel}>{t("userProfile.meta.role")}</div>
             <div style={metaValue}>{user.role}</div>
           </div>
         </div>
       </div>
 
       {/* Form card */}
-      <div style={card}>
+      <div style={card} className="up-card">
         {loading ? (
-          <div style={{ opacity: 0.85 }}>Loading…</div>
+          <div style={{ opacity: 0.85 }}>{t("userProfile.loading")}</div>
         ) : (
           <form onSubmit={save} style={{ display: "grid", gap: 12 }}>
             <label style={labelWrap}>
-              <span style={lbl}>Emri dhe mbiemri</span>
+              <span style={lbl}>{t("userProfile.form.fullName")}</span>
               <input
                 style={inp}
+                className="up-inp"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="p.sh. Beqir Borova"
+                placeholder={t("userProfile.form.placeholders.fullName")}
               />
             </label>
 
-            <div style={grid2Form}>
+            <div style={grid2Form} className="up-grid2form">
               <label style={labelWrap}>
-                <span style={lbl}>Password i ri (opsional)</span>
+                <span style={lbl}>{t("userProfile.form.password")}</span>
                 <input
                   style={inp}
+                  className="up-inp"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 6 karaktere"
+                  placeholder={t("userProfile.form.placeholders.password")}
+                  autoComplete="new-password"
                 />
               </label>
 
               <label style={labelWrap}>
-                <span style={lbl}>Përsërite password-in</span>
+                <span style={lbl}>{t("userProfile.form.password2")}</span>
                 <input
                   style={inp}
+                  className="up-inp"
                   type="password"
                   value={password2}
                   onChange={(e) => setPassword2(e.target.value)}
-                  placeholder="Përsërite"
+                  placeholder={t("userProfile.form.placeholders.password2")}
+                  autoComplete="new-password"
                 />
               </label>
             </div>
 
-            <button type="submit" disabled={saving} style={cnBtn(saving)}>
-              {saving ? "Duke ruajtur..." : "Ruaj ndryshimet"}
+            <button type="submit" disabled={saving} style={cnBtn(saving)} className="up-btn">
+              {saving ? t("userProfile.actions.saving") : t("userProfile.actions.save")}
             </button>
 
-            <div style={hint}>Tip: Nëse s’do me e ndërru password-in, lëri dy fushat bosh.</div>
+            <div style={hint}>{t("userProfile.hint")}</div>
           </form>
         )}
       </div>
@@ -168,6 +184,7 @@ export default function UserProfile() {
   );
 }
 
+/* styles */
 const page = { maxWidth: 820, margin: "0 auto", padding: 16 };
 
 const head = {
@@ -286,7 +303,7 @@ const okBox = {
   fontSize: 13,
 };
 
-/* ✅ RESPONSIVE (mobile) via injected CSS */
+/* ✅ RESPONSIVE (mobile) */
 if (typeof document !== "undefined" && !document.getElementById("user-profile-responsive-css")) {
   const style = document.createElement("style");
   style.id = "user-profile-responsive-css";
@@ -305,19 +322,4 @@ if (typeof document !== "undefined" && !document.getElementById("user-profile-re
     }
   `;
   document.head.appendChild(style);
-}
-
-/* attach responsive classNames by wrapping style objects */
-page.className = "up-page";
-card.className = "up-card";
-grid2.className = "up-grid2";
-grid2Form.className = "up-grid2form";
-title.className = "up-title";
-sub.className = "up-sub";
-rolePill.className = "up-role";
-avatar.className = "up-avatar";
-inp.className = "up-inp";
-
-function cnBtnDummy() {
-  return "";
 }

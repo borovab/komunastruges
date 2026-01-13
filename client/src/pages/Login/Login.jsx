@@ -1,16 +1,40 @@
-// Login.jsx (smaller/compact, NO HeroUI)
+// Login.jsx (smaller/compact, i18n sq/mk, NO HeroUI) + EN fallback if no language selected
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, setSession, getSession } from "../../lib/api";
+import { useLang } from "../../contexts/LanguageContext";
 import logo from "../../assets/logo.png";
+
+const EN = {
+  logoAlt: "Municipality",
+  title: "Login",
+  subtitle: "Sign in to continue.",
+  fields: { username: "Username", password: "Password" },
+  placeholders: { username: "Username...", password: "Password..." },
+  actions: { submit: "Sign in", loggingIn: "Signing in..." },
+  footer: "Municipality of Struga",
+  genericError: "Error",
+};
 
 export default function Login() {
   const navigate = useNavigate();
+  const { t } = useLang();
+
+  // ✅ if lang isn't chosen / keys missing -> show English
+  const tt = React.useCallback(
+    (key, fallback) => {
+      const v = t?.(key);
+      if (!v || v === key) return fallback;
+      return v;
+    },
+    [t]
+  );
+
   const existing = getSession();
 
   React.useEffect(() => {
     if (existing?.user?.role === "admin") navigate("/admin", { replace: true });
-        if (existing?.user?.role === "manager") navigate("/manager", { replace: true });
+    if (existing?.user?.role === "manager") navigate("/manager", { replace: true });
     if (existing?.user?.role === "user") navigate("/user", { replace: true });
   }, [existing, navigate]);
 
@@ -26,9 +50,12 @@ export default function Login() {
     try {
       const { token, user } = await api.login(username, password);
       setSession({ token, user });
-      navigate(user.role === "admin" ? "/admin" : "/user", { replace: true });
+
+      if (user.role === "admin") navigate("/admin", { replace: true });
+      else if (user.role === "manager") navigate("/manager", { replace: true });
+      else navigate("/user", { replace: true });
     } catch (e2) {
-      setErr(e2?.message || "Gabim");
+      setErr(e2?.message || tt("common.errorGeneric", EN.genericError));
     } finally {
       setLoading(false);
     }
@@ -47,7 +74,11 @@ export default function Login() {
           {/* logo (smaller) */}
           <div className="flex justify-center mb-4">
             <div className="h-14 w-14 rounded-3xl bg-white border border-slate-200 shadow-sm grid place-items-center overflow-hidden">
-              <img src={logo} alt="Komuna" className="h-9 w-9 object-contain" />
+              <img
+                src={logo}
+                alt={tt("login.logoAlt", EN.logoAlt)}
+                className="h-9 w-9 object-contain"
+              />
             </div>
           </div>
 
@@ -61,23 +92,27 @@ export default function Login() {
             className="rounded-3xl border border-slate-200 bg-white shadow-sm p-5"
           >
             <div className="text-center mb-5">
-              <h1 className="text-lg font-bold text-slate-900">Login</h1>
-              <p className="text-xs text-slate-500 mt-1">Kyçu për të vazhduar.</p>
+              <h1 className="text-lg font-bold text-slate-900">{tt("login.title", EN.title)}</h1>
+              <p className="text-xs text-slate-500 mt-1">{tt("login.subtitle", EN.subtitle)}</p>
             </div>
 
-            <label className="block text-xs font-medium text-slate-700 mb-2">Username</label>
+            <label className="block text-xs font-medium text-slate-700 mb-2">
+              {tt("login.fields.username", EN.fields.username)}
+            </label>
             <input
               className="w-full h-10 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               name="login_username"
               inputMode="text"
-              placeholder="Username..."
+              placeholder={tt("login.placeholders.username", EN.placeholders.username)}
             />
 
             <div className="h-3" />
 
-            <label className="block text-xs font-medium text-slate-700 mb-2">Password</label>
+            <label className="block text-xs font-medium text-slate-700 mb-2">
+              {tt("login.fields.password", EN.fields.password)}
+            </label>
             <input
               className="w-full h-10 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
               type="password"
@@ -85,7 +120,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               name="login_password"
               autoComplete="new-password"
-              placeholder="Password..."
+              placeholder={tt("login.placeholders.password", EN.placeholders.password)}
             />
 
             {err ? (
@@ -104,11 +139,11 @@ export default function Login() {
                 "disabled:opacity-60 disabled:cursor-not-allowed",
               ].join(" ")}
             >
-              {loading ? "Duke u kyçur..." : "Hyr"}
+              {loading ? tt("login.actions.loggingIn", EN.actions.loggingIn) : tt("login.actions.submit", EN.actions.submit)}
             </button>
 
             <div className="mt-4 text-center text-[11px] text-slate-500">
-              © {new Date().getFullYear()} Komuna e Strugës
+              © {new Date().getFullYear()} {tt("login.footer", EN.footer)}
             </div>
           </form>
         </div>

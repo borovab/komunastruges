@@ -1,12 +1,16 @@
+// ManagerProfile.jsx
 import React from "react";
 import { api, getSession, clearSession } from "../../../lib/api";
 import { useNavigate } from "react-router-dom";
+import { useLang } from "../../../contexts/LanguageContext";
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
 
 export default function ManagerProfile() {
+  const { t } = useLang();
+
   const navigate = useNavigate();
   const s = getSession();
   const user = s?.user;
@@ -31,7 +35,7 @@ export default function ManagerProfile() {
       const u = res?.user;
       if (u?.fullName) setFullName(u.fullName);
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -47,14 +51,14 @@ export default function ManagerProfile() {
     setOk("");
 
     const fn = String(fullName || "").trim();
-    if (!fn) return setErr("Plotëso emrin dhe mbiemrin.");
+    if (!fn) return setErr(t("managerProfile.errors.fullNameRequired"));
 
     const p1 = String(newPassword || "").trim();
     const p2 = String(newPassword2 || "").trim();
 
     if (p1 || p2) {
-      if (p1.length < 6) return setErr("Password shumë i shkurtër (min 6).");
-      if (p1 !== p2) return setErr("Password-at nuk përputhen.");
+      if (p1.length < 6) return setErr(t("managerProfile.errors.passwordTooShort"));
+      if (p1 !== p2) return setErr(t("managerProfile.errors.passwordMismatch"));
     }
 
     setSaving(true);
@@ -64,7 +68,7 @@ export default function ManagerProfile() {
         ...(p1 ? { password: p1 } : {}),
       });
 
-      setOk("U ruajt profili.");
+      setOk(t("managerProfile.ok.saved"));
       setNewPassword("");
       setNewPassword2("");
 
@@ -77,7 +81,7 @@ export default function ManagerProfile() {
         }
       } catch {}
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("common.error"));
     } finally {
       setSaving(false);
     }
@@ -95,8 +99,8 @@ export default function ManagerProfile() {
     <div className="max-w-3xl mx-auto px-4 py-6">
       <div className="flex items-start justify-between gap-3 mb-5">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Manager • Profili im</h2>
-          <p className="text-sm text-slate-500 mt-1">Ndrysho emrin dhe password-in.</p>
+          <h2 className="text-lg font-bold text-slate-900">{t("managerProfile.headerTitle")}</h2>
+          <p className="text-sm text-slate-500 mt-1">{t("managerProfile.headerSubtitle")}</p>
         </div>
 
         <button
@@ -104,7 +108,7 @@ export default function ManagerProfile() {
           onClick={logout}
           className="h-10 px-4 rounded-2xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition text-sm font-semibold"
         >
-          Logout
+          {t("managerProfile.actions.logout")}
         </button>
       </div>
 
@@ -123,47 +127,49 @@ export default function ManagerProfile() {
       <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-2">Emri dhe mbiemri</label>
+            <label className="block text-xs font-medium text-slate-700 mb-2">{t("managerProfile.form.fullName")}</label>
             <input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-              placeholder="p.sh. Arben X"
+              placeholder={t("managerProfile.placeholders.fullName")}
               disabled={loading || saving}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-2">Username</label>
+            <label className="block text-xs font-medium text-slate-700 mb-2">{t("managerProfile.form.username")}</label>
             <input
               value={username}
               readOnly
               className="w-full h-11 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none text-slate-600"
             />
-            <p className="mt-2 text-[11px] text-slate-500">Username nuk ndryshohet këtu.</p>
+            <p className="mt-2 text-[11px] text-slate-500">{t("managerProfile.hints.usernameReadonly")}</p>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-2">Password i ri</label>
+            <label className="block text-xs font-medium text-slate-700 mb-2">{t("managerProfile.form.newPassword")}</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-              placeholder="••••••••"
+              placeholder={t("managerProfile.placeholders.password")}
               autoComplete="new-password"
               disabled={loading || saving}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-2">Përsërite password-in</label>
+            <label className="block text-xs font-medium text-slate-700 mb-2">
+              {t("managerProfile.form.confirmPassword")}
+            </label>
             <input
               type="password"
               value={newPassword2}
               onChange={(e) => setNewPassword2(e.target.value)}
               className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-              placeholder="••••••••"
+              placeholder={t("managerProfile.placeholders.password")}
               autoComplete="new-password"
               disabled={loading || saving}
             />
@@ -177,7 +183,7 @@ export default function ManagerProfile() {
             className="h-11 px-5 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
             disabled={saving}
           >
-            Rifresko
+            {t("managerProfile.actions.refresh")}
           </button>
 
           <button
@@ -189,7 +195,7 @@ export default function ManagerProfile() {
             )}
             disabled={saving}
           >
-            {saving ? "Duke ruajtur..." : "Ruaj"}
+            {saving ? t("managerProfile.actions.saving") : t("managerProfile.actions.save")}
           </button>
         </div>
       </div>

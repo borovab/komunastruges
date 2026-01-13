@@ -1,12 +1,16 @@
-// src/pages/admin/AdminProfile/AdminProfile.jsx
+// src/pages/superadmin/SuperAdminProfile/SuperAdminProfile.jsx (FULL)
+// ✅ i18n (NO SQ fallback) + rregullim localStorage key (kr_session) + profile + password
 import React from "react";
 import { api, getSession } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext"; // 🔁 ndrysho path sipas projektit
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
 
 export default function SuperAdminProfile() {
+  const { t } = useLang();
+
   const s = getSession();
   const user = s?.user;
 
@@ -33,8 +37,9 @@ export default function SuperAdminProfile() {
     setErr("");
     setOk("");
 
-    if (!fullName.trim()) return setErr("Shkruaj emrin dhe mbiemrin.");
-    if (!username.trim()) return setErr("Shkruaj username.");
+    if (!user?.id) return setErr(t("superAdminProfile.errors.noUser"));
+    if (!fullName.trim()) return setErr(t("superAdminProfile.errors.fullNameRequired"));
+    if (!username.trim()) return setErr(t("superAdminProfile.errors.usernameRequired"));
 
     setLoading(true);
     try {
@@ -43,21 +48,20 @@ export default function SuperAdminProfile() {
         username: username.trim(),
       });
 
-      // update session local
-      const next = { ...getSession() };
-      next.user = {
-        ...next.user,
-        fullName: fullName.trim(),
-        username: username.trim(),
-      };
-
+      // ✅ update session local (use same key as your app: kr_session)
       try {
-        localStorage.setItem("session", JSON.stringify(next));
+        const next = { ...(getSession() || {}) };
+        next.user = {
+          ...(next.user || {}),
+          fullName: fullName.trim(),
+          username: username.trim(),
+        };
+        localStorage.setItem("kr_session", JSON.stringify(next));
       } catch {}
 
-      setOk("Profili u përditësua.");
+      setOk(t("superAdminProfile.ok.profileUpdated"));
     } catch (e2) {
-      setErr(e2?.message || "Gabim");
+      setErr(e2?.message || t("superAdminProfile.errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -68,10 +72,11 @@ export default function SuperAdminProfile() {
     setErr("");
     setOk("");
 
-    if (!curPassword.trim()) return setErr("Shkruaj password-in aktual.");
-    if (!newPassword.trim()) return setErr("Shkruaj password-in e ri.");
-    if (newPassword.length < 6) return setErr("Password-i i ri duhet të ketë së paku 6 karaktere.");
-    if (newPassword !== newPassword2) return setErr("Password-i i ri nuk përputhet.");
+    if (!user?.id) return setErr(t("superAdminProfile.errors.noUser"));
+    if (!curPassword.trim()) return setErr(t("superAdminProfile.errors.currentPasswordRequired"));
+    if (!newPassword.trim()) return setErr(t("superAdminProfile.errors.newPasswordRequired"));
+    if (newPassword.trim().length < 6) return setErr(t("superAdminProfile.errors.newPasswordTooShort"));
+    if (newPassword !== newPassword2) return setErr(t("superAdminProfile.errors.passwordsNotMatch"));
 
     setLoading(true);
     try {
@@ -84,9 +89,9 @@ export default function SuperAdminProfile() {
       setNewPassword("");
       setNewPassword2("");
 
-      setOk("Password-i u ndryshua me sukses.");
+      setOk(t("superAdminProfile.ok.passwordUpdated"));
     } catch (e2) {
-      setErr(e2?.message || "Gabim");
+      setErr(e2?.message || t("superAdminProfile.errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -97,10 +102,8 @@ export default function SuperAdminProfile() {
   return (
     <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-5">
       <div className="mb-4">
-        <h2 className="text-base sm:text-lg font-bold text-slate-900">Profili (Admin)</h2>
-        <p className="text-[12px] sm:text-sm text-slate-500 mt-1">
-          Përditëso të dhënat dhe sigurinë e llogarisë.
-        </p>
+        <h2 className="text-base sm:text-lg font-bold text-slate-900">{t("superAdminProfile.headerTitle")}</h2>
+        <p className="text-[12px] sm:text-sm text-slate-500 mt-1">{t("superAdminProfile.headerSubtitle")}</p>
       </div>
 
       {err ? (
@@ -120,7 +123,7 @@ export default function SuperAdminProfile() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-2xl bg-blue-600/10 border border-blue-600/10 grid place-items-center text-blue-700 font-extrabold text-sm">
-              {(user.fullName || "A").trim().slice(0, 1).toUpperCase()}
+              {(user.fullName || "S").trim().slice(0, 1).toUpperCase()}
             </div>
 
             <div className="leading-tight">
@@ -136,12 +139,12 @@ export default function SuperAdminProfile() {
 
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <div className="text-[12px] font-semibold text-slate-500">ID</div>
+            <div className="text-[12px] font-semibold text-slate-500">{t("superAdminProfile.meta.id")}</div>
             <div className="mt-1 text-[13px] font-medium text-slate-900 break-all">{user.id || "-"}</div>
           </div>
 
           <div>
-            <div className="text-[12px] font-semibold text-slate-500">Krijuar</div>
+            <div className="text-[12px] font-semibold text-slate-500">{t("superAdminProfile.meta.created")}</div>
             <div className="mt-1 text-[13px] font-medium text-slate-900">
               {user.createdAt ? new Date(user.createdAt).toLocaleString() : "-"}
             </div>
@@ -151,27 +154,29 @@ export default function SuperAdminProfile() {
 
       {/* Edit profile */}
       <div className="mt-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
-        <div className="text-sm font-semibold text-slate-900">Të dhënat</div>
-        <div className="text-[11px] text-slate-500 mt-1">Ndrysho emrin dhe username-in.</div>
+        <div className="text-sm font-semibold text-slate-900">{t("superAdminProfile.sections.profile.title")}</div>
+        <div className="text-[11px] text-slate-500 mt-1">{t("superAdminProfile.sections.profile.subtitle")}</div>
 
         <form onSubmit={saveProfile} className="mt-3 grid grid-cols-1 gap-3">
           <label className="grid gap-1">
-            <span className="text-[12px] font-semibold text-slate-600">Emri dhe mbiemri</span>
+            <span className="text-[12px] font-semibold text-slate-600">{t("superAdminProfile.form.fullName")}</span>
             <input
               className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 text-sm"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="p.sh. Beqir Borova"
+              placeholder={t("superAdminProfile.placeholders.fullName")}
+              disabled={loading}
             />
           </label>
 
           <label className="grid gap-1">
-            <span className="text-[12px] font-semibold text-slate-600">Username</span>
+            <span className="text-[12px] font-semibold text-slate-600">{t("superAdminProfile.form.username")}</span>
             <input
               className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 text-sm"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="p.sh. u_admin"
+              placeholder={t("superAdminProfile.placeholders.username")}
+              disabled={loading}
             />
           </label>
 
@@ -183,45 +188,51 @@ export default function SuperAdminProfile() {
               loading ? "bg-slate-200 text-slate-600" : "bg-blue-600 text-white hover:bg-blue-700"
             )}
           >
-            {loading ? "Duke ruajtur..." : "Ruaj ndryshimet"}
+            {loading ? t("superAdminProfile.actions.saving") : t("superAdminProfile.actions.saveChanges")}
           </button>
         </form>
       </div>
 
       {/* Security */}
       <div className="mt-3 rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
-        <div className="text-sm font-semibold text-slate-900">Siguria</div>
-        <div className="text-[11px] text-slate-500 mt-1">Ndrysho password-in.</div>
+        <div className="text-sm font-semibold text-slate-900">{t("superAdminProfile.sections.security.title")}</div>
+        <div className="text-[11px] text-slate-500 mt-1">{t("superAdminProfile.sections.security.subtitle")}</div>
 
         <form onSubmit={changePassword} className="mt-3 grid grid-cols-1 gap-3">
           <label className="grid gap-1">
-            <span className="text-[12px] font-semibold text-slate-600">Password aktual</span>
+            <span className="text-[12px] font-semibold text-slate-600">{t("superAdminProfile.form.currentPassword")}</span>
             <input
               type="password"
               className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 text-sm"
               value={curPassword}
               onChange={(e) => setCurPassword(e.target.value)}
+              disabled={loading}
+              autoComplete="current-password"
             />
           </label>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label className="grid gap-1">
-              <span className="text-[12px] font-semibold text-slate-600">Password i ri</span>
+              <span className="text-[12px] font-semibold text-slate-600">{t("superAdminProfile.form.newPassword")}</span>
               <input
                 type="password"
                 className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 text-sm"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
+                disabled={loading}
+                autoComplete="new-password"
               />
             </label>
 
             <label className="grid gap-1">
-              <span className="text-[12px] font-semibold text-slate-600">Përsërite password-in</span>
+              <span className="text-[12px] font-semibold text-slate-600">{t("superAdminProfile.form.repeatPassword")}</span>
               <input
                 type="password"
                 className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 text-sm"
                 value={newPassword2}
                 onChange={(e) => setNewPassword2(e.target.value)}
+                disabled={loading}
+                autoComplete="new-password"
               />
             </label>
           </div>
@@ -234,7 +245,7 @@ export default function SuperAdminProfile() {
               loading ? "bg-slate-200 text-slate-600" : "bg-slate-900 text-white hover:bg-black"
             )}
           >
-            {loading ? "Duke ndryshuar..." : "Ndrysho password"}
+            {loading ? t("superAdminProfile.actions.changing") : t("superAdminProfile.actions.changePassword")}
           </button>
         </form>
       </div>

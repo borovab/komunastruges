@@ -1,14 +1,18 @@
+// src/pages/manager/ManagerReports/ManagerReports.jsx (FULL)
+// ✅ i18n ready (MK) + safe fallbacks (SQ) + status logic fixed (no break on translated labels)
 import React from "react";
 import { api } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext"; // 🔁 ndrysho path sipas projektit
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
 
-function statusLabel(s) {
+function statusKey(s) {
   const v = String(s || "").trim().toLowerCase();
   if (v === "submitted") return "pending";
-  return v || "—";
+  if (v === "reviewed") return "reviewed";
+  return v || "dash";
 }
 
 function formatReason(r) {
@@ -26,9 +30,27 @@ function todayYMD() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-const REASONS = ["Detyrë zyrtare", "Dalje në terren", "Pushim personal", "Arsye shëndetësore", "Tjetër"];
+// ✅ value (sq) shkon në backend; label lokalizohet
+const REASONS = [
+  { value: "Detyrë zyrtare", key: "officialDuty" },
+  { value: "Dalje në terren", key: "fieldWork" },
+  { value: "Pushim personal", key: "personalLeave" },
+  { value: "Arsye shëndetësore", key: "healthReason" },
+  { value: "Tjetër", key: "other" },
+];
 
 export default function ManagerReports() {
+  const { t } = useLang();
+
+  // ✅ safe translation helper (fallback në SQ nëse key mungon)
+  const tr = React.useCallback(
+    (key, fallback, vars) => {
+      const v = t(key, vars);
+      return v === key ? fallback : v;
+    },
+    [t]
+  );
+
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState("");
   const [okMsg, setOkMsg] = React.useState("");
@@ -44,7 +66,7 @@ export default function ManagerReports() {
   const [cTimeReturn, setCTimeReturn] = React.useState("");
   const [cReasonChoice, setCReasonChoice] = React.useState("");
   const [cReasonText, setCReasonText] = React.useState("");
-  const [cRaport, setCRaport] = React.useState(""); // ✅ NEW (opsionale)
+  const [cRaport, setCRaport] = React.useState("");
 
   const resetCreate = () => {
     setCDate(todayYMD());
@@ -52,7 +74,7 @@ export default function ManagerReports() {
     setCTimeReturn("");
     setCReasonChoice("");
     setCReasonText("");
-    setCRaport(""); // ✅ NEW
+    setCRaport("");
   };
 
   const load = async () => {
@@ -95,7 +117,7 @@ export default function ManagerReports() {
     setActing(true);
     try {
       await api.reviewReport(id);
-      setOkMsg("Raportimi u verifikua.");
+      setOkMsg(tr("managerReports.ok.verified", "Raportimi u verifikua."));
       closeDetails();
       await load();
     } catch (e) {
@@ -109,22 +131,24 @@ export default function ManagerReports() {
     setErr("");
     setOkMsg("");
 
-    if (!cReasonChoice) return setErr("Zgjidh arsyen.");
-    if (!cDate) return setErr("Zgjidh datën.");
-    if (!cTimeOut) return setErr("Zgjidh orën e daljes.");
+    if (!cReasonChoice)
+      return setErr(tr("managerReports.create.errors.pickReason", "Zgjidh arsyen."));
+    if (!cDate) return setErr(tr("managerReports.create.errors.pickDate", "Zgjidh datën."));
+    if (!cTimeOut)
+      return setErr(tr("managerReports.create.errors.pickTimeOut", "Zgjidh orën e daljes."));
 
     setActing(true);
     try {
       await api.createReport({
-        reasonChoice: cReasonChoice,
+        reasonChoice: cReasonChoice, // ✅ ruaj vlerën (sq) për backend
         reasonText: cReasonText,
-        ...(cRaport ? { raport: cRaport } : {}), // ✅ NEW (opsionale)
+        ...(cRaport ? { raport: cRaport } : {}),
         date: cDate,
         timeOut: cTimeOut,
-        ...(cTimeReturn ? { timeReturn: cTimeReturn } : {}), // ✅ ora e kthimit opsionale
+        ...(cTimeReturn ? { timeReturn: cTimeReturn } : {}),
       });
 
-      setOkMsg("Raporti u dërgua me sukses.");
+      setOkMsg(tr("managerReports.ok.sent", "Raporti u dërgua me sukses."));
       resetCreate();
       closeCreate();
       await load();
@@ -134,13 +158,24 @@ export default function ManagerReports() {
     }
   };
 
+  const statusText = (k) => {
+    if (k === "pending") return tr("managerReports.status.pending", "pending");
+    if (k === "reviewed") return tr("managerReports.status.reviewed", "reviewed");
+    return tr("managerReports.status.dash", "—");
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Manager • Raportimet</h2>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">
+            {tr("managerReports.headerTitle", "Manager • Raportimet")}
+          </h2>
           <p className="text-[12px] sm:text-sm text-slate-500 mt-1">
-            Shfaq raportimet e punëtorëve të departamentit tënd.
+            {tr(
+              "managerReports.headerSubtitle",
+              "Shfaq raportimet e punëtorëve të departamentit tënd."
+            )}
           </p>
         </div>
 
@@ -154,7 +189,7 @@ export default function ManagerReports() {
             }}
             className="h-10 w-full sm:w-auto px-4 rounded-xl sm:rounded-2xl bg-blue-600 text-white hover:bg-blue-700 transition text-[13px] font-semibold"
           >
-            Shto raport
+            {tr("managerReports.actions.addReport", "Shto raport")}
           </button>
 
           <button
@@ -162,7 +197,7 @@ export default function ManagerReports() {
             onClick={load}
             className="h-10 w-full sm:w-auto px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
           >
-            Rifresko
+            {tr("managerReports.actions.refresh", "Rifresko")}
           </button>
         </div>
       </div>
@@ -186,97 +221,138 @@ export default function ManagerReports() {
               R
             </span>
             <div className="leading-tight min-w-0">
-              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Lista e raportimeve</div>
-              <div className="text-[11px] sm:text-[12px] text-slate-500">{reports.length} raportime</div>
+              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">
+                {tr("managerReports.list.title", "Lista e raportimeve")}
+              </div>
+              <div className="text-[11px] sm:text-[12px] text-slate-500">
+                {tr("managerReports.list.count", "{n} raportime", { n: reports.length })}
+              </div>
             </div>
           </div>
 
-          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">Loading…</div> : null}
+          {loading ? (
+            <div className="text-[12px] sm:text-sm text-slate-500">
+              {tr("managerReports.loading", "Loading…")}
+            </div>
+          ) : null}
         </div>
 
         {!loading && reports.length === 0 ? (
-          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">S’ka raportime.</div>
+          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">
+            {tr("managerReports.empty.noReports", "S’ka raportime.")}
+          </div>
         ) : null}
 
         <div className="overflow-auto">
           <table className="w-full text-[13px] sm:text-sm">
             <thead className="bg-slate-50">
               <tr className="text-left text-slate-600">
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold w-[60px] sm:w-[70px]">#</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Punëtori</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Data</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Time out</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Time return</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Arsye</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Raport</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Status</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Departamenti</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Krijuar</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-right">Veprime</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold w-[60px] sm:w-[70px]">
+                  {tr("managerReports.table.index", "#")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {tr("managerReports.table.worker", "Punëtori")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {tr("managerReports.table.date", "Data")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {tr("managerReports.table.timeOut", "Time out")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {tr("managerReports.table.timeReturn", "Time return")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {tr("managerReports.table.reason", "Arsye")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {tr("managerReports.table.report", "Raport")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {tr("managerReports.table.status", "Status")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {tr("managerReports.table.department", "Departamenti")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {tr("managerReports.table.created", "Krijuar")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-right">
+                  {tr("managerReports.table.actions", "Veprime")}
+                </th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-slate-200">
-              {reports.map((r, idx) => (
-                <tr
-                  key={r.id}
-                  onClick={() => openDetails(r)}
-                  className="cursor-pointer hover:bg-slate-50 transition"
-                  title="Kliko për detaje"
-                >
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-500">{idx + 1}</td>
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-medium text-slate-900">{r.fullName || "—"}</td>
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">{r.date || "—"}</td>
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">{r.timeOut || "—"}</td>
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">{r.timeReturn || "—"}</td>
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">
-                    <div className="truncate max-w-[220px] sm:max-w-[360px]">{formatReason(r)}</div>
-                  </td>
+              {reports.map((r, idx) => {
+                const sk = statusKey(r.status);
+                const isReviewed = sk === "reviewed";
 
-                  {/* ✅ NEW */}
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">
-                    <div className="truncate max-w-[220px] sm:max-w-[360px]">{r.raport || "—"}</div>
-                  </td>
+                return (
+                  <tr
+                    key={r.id}
+                    onClick={() => openDetails(r)}
+                    className="cursor-pointer hover:bg-slate-50 transition"
+                    title={tr("managerReports.table.clickForDetails", "Kliko për detaje")}
+                  >
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-500">{idx + 1}</td>
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-medium text-slate-900">
+                      {r.fullName || "—"}
+                    </td>
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">{r.date || "—"}</td>
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">{r.timeOut || "—"}</td>
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">{r.timeReturn || "—"}</td>
 
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">{statusLabel(r.status)}</td>
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">
-                    {r.departmentName || r.department || "—"}
-                  </td>
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-500">
-                    {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
-                  </td>
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">
+                      <div className="truncate max-w-[220px] sm:max-w-[360px]">{formatReason(r)}</div>
+                    </td>
 
-                  <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">
-                    {statusLabel(r.status) !== "reviewed" ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          markReviewed(r.id);
-                        }}
-                        className={cn(
-                          "h-8 sm:h-9 px-3 rounded-xl sm:rounded-2xl text-white transition text-[11px] sm:text-xs font-semibold",
-                          acting ? "bg-emerald-600/70 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700"
-                        )}
-                        disabled={acting}
-                      >
-                        {acting ? "..." : "Verifikoje"}
-                      </button>
-                    ) : (
-                      <span className="inline-flex items-center h-8 sm:h-9 px-3 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 text-[11px] sm:text-xs font-semibold">
-                        Verified
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">
+                      <div className="truncate max-w-[220px] sm:max-w-[360px]">{r.raport || "—"}</div>
+                    </td>
+
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">{statusText(sk)}</td>
+
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">
+                      {r.departmentName || r.department || "—"}
+                    </td>
+
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-500">
+                      {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
+                    </td>
+
+                    <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">
+                      {!isReviewed ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            markReviewed(r.id);
+                          }}
+                          className={cn(
+                            "h-8 sm:h-9 px-3 rounded-xl sm:rounded-2xl text-white transition text-[11px] sm:text-xs font-semibold",
+                            acting ? "bg-emerald-600/70 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700"
+                          )}
+                          disabled={acting}
+                        >
+                          {acting ? "..." : tr("managerReports.actions.verify", "Verifikoje")}
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center h-8 sm:h-9 px-3 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 text-[11px] sm:text-xs font-semibold">
+                          {tr("managerReports.actions.verified", "Verified")}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* ✅ Create Report Modal (mobile bottom-sheet + dvh + flex body scroll) */}
+      {/* ✅ Create Report Modal */}
       {createOpen ? (
         <div className="fixed inset-0 z-[999]">
           <div className="absolute inset-0 bg-black/40" onClick={closeCreate} />
@@ -290,9 +366,11 @@ export default function ManagerReports() {
             >
               <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">Shto raport (Manager)</div>
+                  <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">
+                    {tr("managerReports.create.title", "Shto raport (Manager)")}
+                  </div>
                   <div className="text-[11px] sm:text-[12px] text-slate-500 truncate">
-                    Plotëso fushat dhe dërgo raportin.
+                    {tr("managerReports.create.subtitle", "Plotëso fushat dhe dërgo raportin.")}
                   </div>
                 </div>
 
@@ -300,7 +378,7 @@ export default function ManagerReports() {
                   type="button"
                   onClick={closeCreate}
                   className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition grid place-items-center"
-                  aria-label="Mbyll"
+                  aria-label={tr("managerReports.actions.close", "Mbyll")}
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
                     <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -311,7 +389,9 @@ export default function ManagerReports() {
               <div className="p-4 sm:p-5 space-y-3 sm:space-y-4 overflow-auto flex-1">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                   <div>
-                    <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Data</label>
+                    <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
+                      {tr("managerReports.create.fields.date", "Data")}
+                    </label>
                     <input
                       type="date"
                       value={cDate}
@@ -321,7 +401,9 @@ export default function ManagerReports() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Ora e daljes</label>
+                    <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
+                      {tr("managerReports.create.fields.timeOut", "Ora e daljes")}
+                    </label>
                     <input
                       type="time"
                       value={cTimeOut}
@@ -332,7 +414,7 @@ export default function ManagerReports() {
 
                   <div>
                     <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
-                      Ora e kthimit (opsionale)
+                      {tr("managerReports.create.fields.timeReturnOptional", "Ora e kthimit (opsionale)")}
                     </label>
                     <input
                       type="time"
@@ -344,53 +426,61 @@ export default function ManagerReports() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Arsyeja e daljes</label>
+                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
+                    {tr("managerReports.create.fields.reasonTitle", "Arsyeja e daljes")}
+                  </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {REASONS.map((r) => (
-                      <label
-                        key={r}
-                        className={cn(
-                          "flex items-center gap-3 rounded-xl sm:rounded-2xl border px-3 py-2 text-[13px] sm:text-sm cursor-pointer transition",
-                          cReasonChoice === r
-                            ? "border-blue-300 bg-blue-50"
-                            : "border-slate-200 bg-white hover:bg-slate-50"
-                        )}
-                      >
-                        <input
-                          type="radio"
-                          name="reasonChoiceManager"
-                          checked={cReasonChoice === r}
-                          onChange={() => setCReasonChoice(r)}
-                          className="h-4 w-4"
-                        />
-                        <span className="text-slate-700">{r}</span>
-                      </label>
-                    ))}
+                    {REASONS.map((x) => {
+                      const label = tr(
+                        `managerReports.reasons.${x.key}`,
+                        x.value // fallback SQ
+                      );
+
+                      return (
+                        <label
+                          key={x.value}
+                          className={cn(
+                            "flex items-center gap-3 rounded-xl sm:rounded-2xl border px-3 py-2 text-[13px] sm:text-sm cursor-pointer transition",
+                            cReasonChoice === x.value
+                              ? "border-blue-300 bg-blue-50"
+                              : "border-slate-200 bg-white hover:bg-slate-50"
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="reasonChoiceManager"
+                            checked={cReasonChoice === x.value}
+                            onChange={() => setCReasonChoice(x.value)}
+                            className="h-4 w-4"
+                          />
+                          <span className="text-slate-700">{label}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
-                    Shënim (opsionale)
+                    {tr("managerReports.create.fields.noteOptional", "Shënim (opsionale)")}
                   </label>
                   <textarea
                     value={cReasonText}
                     onChange={(e) => setCReasonText(e.target.value)}
                     className="w-full min-h-[110px] rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 py-2 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    placeholder="Shkruaj shënim..."
+                    placeholder={tr("managerReports.create.placeholders.note", "Shkruaj shënim...")}
                   />
                 </div>
 
-                {/* ✅ NEW */}
                 <div>
                   <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
-                    Raport (opsionale)
+                    {tr("managerReports.create.fields.reportOptional", "Raport (opsionale)")}
                   </label>
                   <textarea
                     value={cRaport}
                     onChange={(e) => setCRaport(e.target.value)}
                     className="w-full min-h-[110px] rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 py-2 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    placeholder="Shkruaj raport..."
+                    placeholder={tr("managerReports.create.placeholders.report", "Shkruaj raport...")}
                   />
                 </div>
               </div>
@@ -402,7 +492,7 @@ export default function ManagerReports() {
                   className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                   disabled={acting}
                 >
-                  Mbyll
+                  {tr("managerReports.actions.close", "Mbyll")}
                 </button>
 
                 <button
@@ -413,7 +503,9 @@ export default function ManagerReports() {
                   )}
                   disabled={acting}
                 >
-                  {acting ? "Duke dërguar…" : "Dërgo raportin"}
+                  {acting
+                    ? tr("managerReports.actions.sending", "Duke dërguar…")
+                    : tr("managerReports.actions.sendReport", "Dërgo raportin")}
                 </button>
               </div>
             </form>
@@ -436,8 +528,9 @@ export default function ManagerReports() {
                     {open.fullName || "—"} • {open.departmentName || open.department || "—"}
                   </div>
                   <div className="text-[11px] sm:text-[12px] text-slate-500 truncate">
-                    {open.createdAt ? new Date(open.createdAt).toLocaleString() : "—"} • Status:{" "}
-                    <span className="font-semibold text-slate-700">{statusLabel(open.status)}</span>
+                    {open.createdAt ? new Date(open.createdAt).toLocaleString() : "—"} •{" "}
+                    {tr("managerReports.details.statusLabel", "Status")}:{" "}
+                    <span className="font-semibold text-slate-700">{statusText(statusKey(open.status))}</span>
                   </div>
                 </div>
 
@@ -445,7 +538,7 @@ export default function ManagerReports() {
                   type="button"
                   onClick={closeDetails}
                   className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition grid place-items-center"
-                  aria-label="Mbyll"
+                  aria-label={tr("managerReports.actions.close", "Mbyll")}
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
                     <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -456,24 +549,36 @@ export default function ManagerReports() {
               <div className="p-4 sm:p-5 space-y-3 sm:space-y-4 overflow-auto flex-1">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Punëtori</div>
-                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">{open.fullName || "—"}</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">
+                      {tr("managerReports.details.worker", "Punëtori")}
+                    </div>
+                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">
+                      {open.fullName || "—"}
+                    </div>
                   </div>
 
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Departamenti</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">
+                      {tr("managerReports.details.department", "Departamenti")}
+                    </div>
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">
                       {open.departmentName || open.department || "—"}
                     </div>
                   </div>
 
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Data</div>
-                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">{open.date || "—"}</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">
+                      {tr("managerReports.details.date", "Data")}
+                    </div>
+                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">
+                      {open.date || "—"}
+                    </div>
                   </div>
 
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Koha</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">
+                      {tr("managerReports.details.time", "Koha")}
+                    </div>
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">
                       {open.timeOut || "—"} - {open.timeReturn || "—"}
                     </div>
@@ -481,15 +586,18 @@ export default function ManagerReports() {
                 </div>
 
                 <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                  <div className="text-[10px] sm:text-[11px] text-slate-500">Arsye</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-500">
+                    {tr("managerReports.details.reason", "Arsye")}
+                  </div>
                   <div className="text-[13px] sm:text-sm text-slate-900 mt-2 whitespace-pre-wrap break-words">
                     {formatReason(open)}
                   </div>
                 </div>
 
-                {/* ✅ NEW */}
                 <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                  <div className="text-[10px] sm:text-[11px] text-slate-500">Raport</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-500">
+                    {tr("managerReports.details.report", "Raport")}
+                  </div>
                   <div className="text-[13px] sm:text-sm text-slate-900 mt-2 whitespace-pre-wrap break-words">
                     {open.raport ? String(open.raport) : "—"}
                   </div>
@@ -503,10 +611,10 @@ export default function ManagerReports() {
                   className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                   disabled={acting}
                 >
-                  Mbyll
+                  {tr("managerReports.actions.close", "Mbyll")}
                 </button>
 
-                {statusLabel(open.status) !== "reviewed" ? (
+                {statusKey(open.status) !== "reviewed" ? (
                   <button
                     type="button"
                     onClick={() => markReviewed(open.id)}
@@ -516,7 +624,7 @@ export default function ManagerReports() {
                     )}
                     disabled={acting}
                   >
-                    {acting ? "..." : "Verifikoje"}
+                    {acting ? "..." : tr("managerReports.actions.verify", "Verifikoje")}
                   </button>
                 ) : null}
               </div>

@@ -1,7 +1,8 @@
-// src/pages/Admin/AdminReports/AdminReports.jsx
+// src/pages/Admin/AdminReports/AdminReports.jsx (i18n sq/mk)
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext";
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
@@ -22,6 +23,7 @@ function formatReason(r) {
 }
 
 export default function AdminReports() {
+  const { t } = useLang();
   const navigate = useNavigate();
 
   const [loading, setLoading] = React.useState(true);
@@ -45,7 +47,7 @@ export default function AdminReports() {
       setReports(res?.reports || []);
       setDepartments(deps?.departments || []);
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("common.errorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -53,6 +55,7 @@ export default function AdminReports() {
 
   React.useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openDetails = (r) => {
@@ -66,27 +69,23 @@ export default function AdminReports() {
     setActing(false);
   };
 
-
-
   const markReviewed = async (id) => {
     setErr("");
     setOkMsg("");
     setActing(true);
     try {
       await api.reviewReport(id);
-      setOkMsg("Raportimi u verifikua.");
+      setOkMsg(t("adminReports.ok.verified"));
       closeDetails();
       await load();
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("common.errorGeneric"));
       setActing(false);
     }
   };
 
   const filteredReports =
-    depId === "all"
-      ? reports
-      : reports.filter((r) => String(r.departmentId || "").trim() === String(depId).trim());
+    depId === "all" ? reports : reports.filter((r) => String(r.departmentId || "").trim() === String(depId).trim());
 
   const depNameById = React.useMemo(() => {
     const m = new Map();
@@ -94,13 +93,18 @@ export default function AdminReports() {
     return m;
   }, [departments]);
 
+  const filterLabel =
+    depId === "all"
+      ? t("adminReports.filter.allDepartments")
+      : t("adminReports.filter.departmentPrefix", { name: depNameById.get(String(depId)) || "—" });
+
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Admin • Raportimet</h2>
-          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">Shfaq të gjitha raportimet (Excel list).</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">{t("adminReports.headerTitle")}</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">{t("adminReports.headerSubtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:flex sm:items-center gap-2">
@@ -109,7 +113,7 @@ export default function AdminReports() {
             onClick={load}
             className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
           >
-            Rifresko
+            {t("common.refresh")}
           </button>
 
           <button
@@ -120,7 +124,7 @@ export default function AdminReports() {
               navigate("/admin", { replace: true });
             }}
           >
-            Paneli
+            {t("adminReports.actions.dashboard")}
           </button>
         </div>
       </div>
@@ -140,18 +144,16 @@ export default function AdminReports() {
 
       {/* Filter row */}
       <div className="mb-3 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-        <div className="text-[12px] sm:text-sm text-slate-600">
-          {depId === "all" ? "Të gjitha departamentet" : `Departamenti: ${depNameById.get(String(depId)) || "—"}`}
-        </div>
+        <div className="text-[12px] sm:text-sm text-slate-600">{filterLabel}</div>
 
         <div className="flex items-center gap-2">
-          <label className="text-[11px] font-semibold text-slate-600">Filtro:</label>
+          <label className="text-[11px] font-semibold text-slate-600">{t("adminReports.filter.label")}</label>
           <select
             value={depId}
             onChange={(e) => setDepId(e.target.value)}
             className="h-9 sm:h-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
           >
-            <option value="all">Të gjitha</option>
+            <option value="all">{t("adminReports.filter.allOption")}</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -169,18 +171,19 @@ export default function AdminReports() {
               R
             </span>
             <div className="leading-tight min-w-0">
-              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Lista e raportimeve</div>
+              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">{t("adminReports.list.title")}</div>
               <div className="text-[11px] sm:text-[12px] text-slate-500">
-                {filteredReports.length} raportime{depId === "all" ? "" : " (filtruar)"}
+                {t("adminReports.list.count", { n: filteredReports.length })}
+                {depId === "all" ? "" : t("adminReports.list.filteredSuffix")}
               </div>
             </div>
           </div>
 
-          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">Loading…</div> : null}
+          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">{t("common.loading")}</div> : null}
         </div>
 
         {!loading && filteredReports.length === 0 ? (
-          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">S’ka raportime.</div>
+          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">{t("adminReports.list.empty")}</div>
         ) : null}
 
         {/* EXCEL LIST (vetëm kjo) */}
@@ -189,15 +192,15 @@ export default function AdminReports() {
             <thead className="bg-slate-50">
               <tr className="text-left text-slate-600">
                 <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold w-[60px] sm:w-[70px]">#</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Punëtori</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Data</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Time out</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Time return</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Arsye</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Status</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Departamenti</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Krijuar</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-right">Veprime</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("adminReports.table.worker")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("adminReports.table.date")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("adminReports.table.timeOut")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("adminReports.table.timeReturn")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("adminReports.table.reason")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("adminReports.table.status")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("adminReports.table.department")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("adminReports.table.created")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-right">{t("adminReports.table.actions")}</th>
               </tr>
             </thead>
 
@@ -207,7 +210,7 @@ export default function AdminReports() {
                   key={r.id}
                   onClick={() => openDetails(r)}
                   className="cursor-pointer hover:bg-slate-50 transition"
-                  title="Kliko për detaje"
+                  title={t("adminReports.table.clickForDetails")}
                 >
                   <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-500">{idx + 1}</td>
                   <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-medium text-slate-900">{r.fullName || "—"}</td>
@@ -240,11 +243,11 @@ export default function AdminReports() {
                         )}
                         disabled={acting}
                       >
-                        {acting ? "..." : "Verifikoje"}
+                        {acting ? t("common.ellipsis") : t("adminReports.actions.verify")}
                       </button>
                     ) : (
                       <span className="inline-flex items-center h-8 sm:h-9 px-3 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 text-[11px] sm:text-xs font-semibold">
-                        Verified
+                        {t("adminReports.actions.verified")}
                       </span>
                     )}
                   </td>
@@ -264,10 +267,12 @@ export default function AdminReports() {
               <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">
-                    {open.fullName || "—"} • {open.departmentName || depNameById.get(String(open.departmentId)) || "—"}
+                    {open.fullName || "—"} •{" "}
+                    {open.departmentName || depNameById.get(String(open.departmentId)) || "—"}
                   </div>
                   <div className="text-[11px] sm:text-[12px] text-slate-500 truncate">
-                    {open.createdAt ? new Date(open.createdAt).toLocaleString() : "—"} • Status:{" "}
+                    {open.createdAt ? new Date(open.createdAt).toLocaleString() : "—"} •{" "}
+                    {t("adminReports.modal.status")}:{" "}
                     <span className="font-semibold text-slate-700">{statusLabel(open.status)}</span>
                   </div>
                 </div>
@@ -276,7 +281,7 @@ export default function AdminReports() {
                   type="button"
                   onClick={closeDetails}
                   className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition grid place-items-center"
-                  aria-label="Mbyll"
+                  aria-label={t("common.close")}
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
                     <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -287,24 +292,26 @@ export default function AdminReports() {
               <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Punëtori</div>
-                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">{open.fullName || "—"}</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">{t("adminReports.modal.worker")}</div>
+                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">
+                      {open.fullName || "—"}
+                    </div>
                   </div>
 
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Departamenti</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">{t("adminReports.modal.department")}</div>
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">
                       {open.departmentName || depNameById.get(String(open.departmentId)) || "—"}
                     </div>
                   </div>
 
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Data</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">{t("adminReports.modal.date")}</div>
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">{open.date || "—"}</div>
                   </div>
 
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Koha</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">{t("adminReports.modal.time")}</div>
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">
                       {open.timeOut || "—"} - {open.timeReturn || "—"}
                     </div>
@@ -312,7 +319,7 @@ export default function AdminReports() {
                 </div>
 
                 <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                  <div className="text-[10px] sm:text-[11px] text-slate-500">Arsye</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-500">{t("adminReports.modal.reason")}</div>
                   <div className="text-[13px] sm:text-sm text-slate-900 mt-2 whitespace-pre-wrap break-words">
                     {formatReason(open)}
                   </div>
@@ -326,7 +333,7 @@ export default function AdminReports() {
                   className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                   disabled={acting}
                 >
-                  Mbyll
+                  {t("common.close")}
                 </button>
 
                 {statusLabel(open.status) !== "reviewed" ? (
@@ -339,11 +346,9 @@ export default function AdminReports() {
                     )}
                     disabled={acting}
                   >
-                    {acting ? "..." : "Verifikoje"}
+                    {acting ? t("common.ellipsis") : t("adminReports.actions.verify")}
                   </button>
                 ) : null}
-
-            
               </div>
             </div>
           </div>

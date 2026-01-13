@@ -1,13 +1,15 @@
-// AdminWorkers.jsx (modern list ONLY, NO edit, NO delete) + hide superadmin
+// AdminWorkers.jsx (i18n sq/mk) - modern list ONLY, NO edit, NO delete + hide superadmin
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext";
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
 
 export default function AdminWorkers() {
+  const { t } = useLang();
   const navigate = useNavigate();
 
   const [loading, setLoading] = React.useState(true);
@@ -29,7 +31,7 @@ export default function AdminWorkers() {
       setUsers(list);
       setDepartments(deps.departments || []);
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("common.errorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -37,6 +39,7 @@ export default function AdminWorkers() {
 
   React.useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const depNameById = React.useMemo(() => {
@@ -48,13 +51,18 @@ export default function AdminWorkers() {
   const filteredUsers =
     depId === "all" ? users : users.filter((u) => String(u.departmentId || "").trim() === String(depId).trim());
 
+  const filterLabel =
+    depId === "all"
+      ? t("adminWorkers.filter.allDepartments")
+      : t("adminWorkers.filter.departmentPrefix", { name: depNameById.get(String(depId)) || "—" });
+
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Admin • Punëtorët</h2>
-          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">Lista e punëtorëve (vetëm shfaqje).</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">{t("adminWorkers.headerTitle")}</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">{t("adminWorkers.headerSubtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:flex sm:items-center gap-2">
@@ -63,7 +71,7 @@ export default function AdminWorkers() {
             onClick={load}
             className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
           >
-            Rifresko
+            {t("common.refresh")}
           </button>
 
           <button
@@ -74,7 +82,7 @@ export default function AdminWorkers() {
               navigate("/admin", { replace: true });
             }}
           >
-            Paneli
+            {t("adminWorkers.actions.dashboard")}
           </button>
         </div>
       </div>
@@ -94,18 +102,16 @@ export default function AdminWorkers() {
 
       {/* Filter row */}
       <div className="mb-3 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-        <div className="text-[12px] sm:text-sm text-slate-600">
-          {depId === "all" ? "Të gjitha departamentet" : `Departamenti: ${depNameById.get(String(depId)) || "—"}`}
-        </div>
+        <div className="text-[12px] sm:text-sm text-slate-600">{filterLabel}</div>
 
         <div className="flex items-center gap-2">
-          <label className="text-[11px] font-semibold text-slate-600">Filtro:</label>
+          <label className="text-[11px] font-semibold text-slate-600">{t("adminWorkers.filter.label")}</label>
           <select
             value={depId}
             onChange={(e) => setDepId(e.target.value)}
             className="h-9 sm:h-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
           >
-            <option value="all">Të gjitha</option>
+            <option value="all">{t("adminWorkers.filter.allOption")}</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -123,18 +129,19 @@ export default function AdminWorkers() {
               U
             </span>
             <div className="leading-tight min-w-0">
-              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Lista e përdoruesve</div>
+              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">{t("adminWorkers.list.title")}</div>
               <div className="text-[11px] sm:text-[12px] text-slate-500">
-                {filteredUsers.length} përdorues{depId === "all" ? "" : " (filtruar)"}
+                {t("adminWorkers.list.count", { n: filteredUsers.length })}
+                {depId === "all" ? "" : t("adminWorkers.list.filteredSuffix")}
               </div>
             </div>
           </div>
 
-          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">Loading…</div> : null}
+          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">{t("common.loading")}</div> : null}
         </div>
 
         {!loading && filteredUsers.length === 0 ? (
-          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">S’ka përdorues.</div>
+          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">{t("adminWorkers.list.empty")}</div>
         ) : null}
 
         <div className="divide-y divide-slate-200">
@@ -155,9 +162,7 @@ export default function AdminWorkers() {
                   </div>
 
                   <div className="min-w-0">
-                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">
-                      {u.fullName || "-"}
-                    </div>
+                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">{u.fullName || "-"}</div>
 
                     <div className="text-[11px] sm:text-[12px] text-slate-500 truncate flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <span>@{u.username || "-"}</span>
@@ -176,14 +181,14 @@ export default function AdminWorkers() {
                       <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
                         {u.departmentName ||
                           (u.departmentId ? depNameById.get(String(u.departmentId)) : null) ||
-                          "pa department"}
+                          t("adminWorkers.labels.noDepartment")}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-2 text-[10px] sm:text-[11px] text-slate-500">
-                  Krijuar: {u.createdAt ? new Date(u.createdAt).toLocaleString() : "-"}
+                  {t("adminWorkers.labels.created")}: {u.createdAt ? new Date(u.createdAt).toLocaleString() : "-"}
                 </div>
               </div>
 

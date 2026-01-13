@@ -1,13 +1,16 @@
-// AdminWorkers.jsx (modern list + edit only, NO create form)
+// src/pages/Admin/AdminWorkers/AdminWorkers.jsx (FULL)
+// ✅ i18n (NO SQ fallback) + dep filter + edit modal + delete
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext"; // 🔁 ndrysho path sipas projektit
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
 
 export default function SuperAdminWorkers() {
+  const { t } = useLang();
   const navigate = useNavigate();
 
   const [loading, setLoading] = React.useState(true);
@@ -35,7 +38,7 @@ export default function SuperAdminWorkers() {
       setUsers(u.users || []);
       setDepartments(deps.departments || []);
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("superAdminWorkers.errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -52,7 +55,14 @@ export default function SuperAdminWorkers() {
   }, [departments]);
 
   const filteredUsers =
-    depId === "all" ? users : users.filter((u) => String(u.departmentId || "").trim() === String(depId).trim());
+    depId === "all"
+      ? users
+      : users.filter((u) => String(u.departmentId || "").trim() === String(depId).trim());
+
+  const depLabel =
+    depId === "all"
+      ? t("superAdminWorkers.filter.allDepartments")
+      : `${t("superAdminWorkers.filter.department")}: ${depNameById.get(String(depId)) || "—"}`;
 
   const openEdit = (u) => {
     setEditing(u);
@@ -76,33 +86,38 @@ export default function SuperAdminWorkers() {
 
     setErr("");
     setOkMsg("");
+
+    if (!eFullName.trim()) return setErr(t("superAdminWorkers.errors.fullNameRequired"));
+    if (!eUsername.trim()) return setErr(t("superAdminWorkers.errors.usernameRequired"));
+    if (ePassword.trim() && ePassword.trim().length < 6) return setErr(t("superAdminWorkers.errors.passwordShort"));
+
     setSaving(true);
     try {
       await api.updateUser(editing.id, {
         fullName: eFullName.trim(),
         username: eUsername.trim(),
-        password: ePassword ? ePassword : undefined,
+        password: ePassword.trim() ? ePassword.trim() : undefined,
       });
-      setOkMsg("Punëtori u përditësua.");
+      setOkMsg(t("superAdminWorkers.ok.updated"));
       closeEdit();
       await load();
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("superAdminWorkers.errors.generic"));
       setSaving(false);
     }
   };
 
   const removeUser = async (id) => {
-    if (!window.confirm("A je i sigurt që do ta fshish këtë punëtor?")) return;
+    if (!window.confirm(t("superAdminWorkers.confirm.delete"))) return;
 
     setErr("");
     setOkMsg("");
     try {
       await api.deleteUser(id);
-      setOkMsg("Punëtori u fshi.");
+      setOkMsg(t("superAdminWorkers.ok.deleted"));
       await load();
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("superAdminWorkers.errors.generic"));
     }
   };
 
@@ -111,8 +126,8 @@ export default function SuperAdminWorkers() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Admin • Punëtorët</h2>
-          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">Menaxho punëtorët (ndrysho të dhëna / fshij).</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">{t("superAdminWorkers.header.title")}</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">{t("superAdminWorkers.header.subtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:flex sm:items-center gap-2">
@@ -121,7 +136,7 @@ export default function SuperAdminWorkers() {
             onClick={load}
             className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
           >
-            Rifresko
+            {t("superAdminWorkers.actions.refresh")}
           </button>
 
           <button
@@ -132,7 +147,7 @@ export default function SuperAdminWorkers() {
               navigate("/admin", { replace: true });
             }}
           >
-            Paneli
+            {t("superAdminWorkers.actions.panel")}
           </button>
         </div>
       </div>
@@ -152,18 +167,16 @@ export default function SuperAdminWorkers() {
 
       {/* Filter row */}
       <div className="mb-3 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-        <div className="text-[12px] sm:text-sm text-slate-600">
-          {depId === "all" ? "Të gjitha departamentet" : `Departamenti: ${depNameById.get(String(depId)) || "—"}`}
-        </div>
+        <div className="text-[12px] sm:text-sm text-slate-600">{depLabel}</div>
 
         <div className="flex items-center gap-2">
-          <label className="text-[11px] font-semibold text-slate-600">Filtro:</label>
+          <label className="text-[11px] font-semibold text-slate-600">{t("superAdminWorkers.filter.label")}</label>
           <select
             value={depId}
             onChange={(e) => setDepId(e.target.value)}
             className="h-9 sm:h-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
           >
-            <option value="all">Të gjitha</option>
+            <option value="all">{t("superAdminWorkers.filter.all")}</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -181,18 +194,21 @@ export default function SuperAdminWorkers() {
               U
             </span>
             <div className="leading-tight min-w-0">
-              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Lista e përdoruesve</div>
+              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">
+                {t("superAdminWorkers.list.title")}
+              </div>
               <div className="text-[11px] sm:text-[12px] text-slate-500">
-                {filteredUsers.length} përdorues{depId === "all" ? "" : " (filtruar)"}
+                {filteredUsers.length} {t("superAdminWorkers.list.count")}
+                {depId === "all" ? "" : ` (${t("superAdminWorkers.list.filtered")})`}
               </div>
             </div>
           </div>
 
-          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">Loading…</div> : null}
+          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">{t("superAdminWorkers.loading")}</div> : null}
         </div>
 
         {!loading && filteredUsers.length === 0 ? (
-          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">S’ka përdorues.</div>
+          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">{t("superAdminWorkers.empty")}</div>
         ) : null}
 
         <div className="divide-y divide-slate-200">
@@ -213,19 +229,18 @@ export default function SuperAdminWorkers() {
                   </div>
 
                   <div className="min-w-0">
-                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">
-                      {u.fullName || "-"}
-                    </div>
+                    <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">{u.fullName || "—"}</div>
 
                     <div className="text-[11px] sm:text-[12px] text-slate-500 truncate flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <span>@{u.username || "-"}</span>
+                      <span>@{u.username || "—"}</span>
 
                       <span
                         className={cn(
                           "px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold border",
                           (u.role || "").toLowerCase() === "admin" && "bg-rose-50 text-rose-700 border-rose-200",
                           (u.role || "").toLowerCase() === "manager" && "bg-amber-50 text-amber-800 border-amber-200",
-                          (u.role || "").toLowerCase() === "user" && "bg-slate-50 text-slate-700 border-slate-200"
+                          (u.role || "").toLowerCase() === "user" && "bg-slate-50 text-slate-700 border-slate-200",
+                          (u.role || "").toLowerCase() === "superadmin" && "bg-blue-50 text-blue-700 border-blue-200"
                         )}
                       >
                         {(u.role || "user").toLowerCase()}
@@ -234,14 +249,14 @@ export default function SuperAdminWorkers() {
                       <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
                         {u.departmentName ||
                           (u.departmentId ? depNameById.get(String(u.departmentId)) : null) ||
-                          "pa department"}
+                          t("superAdminWorkers.labels.noDepartment")}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-2 text-[10px] sm:text-[11px] text-slate-500">
-                  Krijuar: {u.createdAt ? new Date(u.createdAt).toLocaleString() : "-"}
+                  {t("superAdminWorkers.labels.created")}: {u.createdAt ? new Date(u.createdAt).toLocaleString() : "—"}
                 </div>
               </div>
 
@@ -251,7 +266,7 @@ export default function SuperAdminWorkers() {
                   onClick={() => openEdit(u)}
                   className="h-9 sm:h-10 flex-1 sm:flex-none px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                 >
-                  Edit
+                  {t("superAdminWorkers.actions.edit")}
                 </button>
 
                 <button
@@ -259,7 +274,7 @@ export default function SuperAdminWorkers() {
                   onClick={() => removeUser(u.id)}
                   className="h-9 sm:h-10 flex-1 sm:flex-none px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition text-[13px] sm:text-sm font-semibold"
                 >
-                  Delete
+                  {t("superAdminWorkers.actions.delete")}
                 </button>
               </div>
             </div>
@@ -275,7 +290,9 @@ export default function SuperAdminWorkers() {
             <div className="w-full max-w-lg rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-xl overflow-hidden">
               <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Ndrysho përdoruesin</div>
+                  <div className="text-[13px] sm:text-sm font-semibold text-slate-900">
+                    {t("superAdminWorkers.modal.title")}
+                  </div>
 
                   <div className="text-[11px] sm:text-[12px] text-slate-500 flex flex-wrap items-center gap-2">
                     <span>@{editing.username}</span>
@@ -287,7 +304,8 @@ export default function SuperAdminWorkers() {
                           "bg-rose-50 text-rose-700 border-rose-200",
                         (editing.role || "").toLowerCase() === "manager" &&
                           "bg-amber-50 text-amber-800 border-amber-200",
-                        (editing.role || "").toLowerCase() === "user" && "bg-slate-50 text-slate-700 border-slate-200"
+                        (editing.role || "").toLowerCase() === "user" && "bg-slate-50 text-slate-700 border-slate-200",
+                        (editing.role || "").toLowerCase() === "superadmin" && "bg-blue-50 text-blue-700 border-blue-200"
                       )}
                     >
                       {(editing.role || "user").toLowerCase()}
@@ -296,7 +314,7 @@ export default function SuperAdminWorkers() {
                     <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
                       {editing.departmentName ||
                         (editing.departmentId ? depNameById.get(String(editing.departmentId)) : null) ||
-                        "pa department"}
+                        t("superAdminWorkers.labels.noDepartment")}
                     </span>
                   </div>
                 </div>
@@ -305,7 +323,7 @@ export default function SuperAdminWorkers() {
                   type="button"
                   onClick={closeEdit}
                   className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition grid place-items-center"
-                  aria-label="Mbyll"
+                  aria-label={t("superAdminWorkers.actions.close")}
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
                     <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -316,29 +334,31 @@ export default function SuperAdminWorkers() {
               <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
                 <div>
                   <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
-                    Emri dhe mbiemri
+                    {t("superAdminWorkers.fields.fullName")}
                   </label>
                   <input
                     value={eFullName}
                     onChange={(e) => setEFullName(e.target.value)}
                     className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    placeholder="p.sh. Arben X"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Username</label>
-                  <input
-                    value={eUsername}
-                    onChange={(e) => setEUsername(e.target.value)}
-                    className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    placeholder="p.sh. arben"
+                    placeholder={t("superAdminWorkers.placeholders.fullName")}
                   />
                 </div>
 
                 <div>
                   <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
-                    Password (lëre bosh mos me ndërru)
+                    {t("superAdminWorkers.fields.username")}
+                  </label>
+                  <input
+                    value={eUsername}
+                    onChange={(e) => setEUsername(e.target.value)}
+                    className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                    placeholder={t("superAdminWorkers.placeholders.username")}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
+                    {t("superAdminWorkers.fields.passwordOptional")}
                   </label>
                   <input
                     type="password"
@@ -349,7 +369,7 @@ export default function SuperAdminWorkers() {
                     autoComplete="new-password"
                   />
                   <p className="mt-2 text-[10px] sm:text-[11px] text-slate-500">
-                    Nëse e lë bosh, password-i nuk ndryshohet.
+                    {t("superAdminWorkers.hints.passwordOptional")}
                   </p>
                 </div>
               </div>
@@ -361,7 +381,7 @@ export default function SuperAdminWorkers() {
                   className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                   disabled={saving}
                 >
-                  Anulo
+                  {t("superAdminWorkers.actions.cancel")}
                 </button>
 
                 <button
@@ -373,7 +393,7 @@ export default function SuperAdminWorkers() {
                   )}
                   disabled={saving}
                 >
-                  {saving ? "Duke ruajtur..." : "Ruaj ndryshimet"}
+                  {saving ? t("superAdminWorkers.actions.saving") : t("superAdminWorkers.actions.save")}
                 </button>
               </div>
             </div>

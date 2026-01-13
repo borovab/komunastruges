@@ -1,16 +1,16 @@
  import React from "react";
  import ReactDOM from "react-dom/client";
  import { BrowserRouter } from "react-router-dom";
-import { HeroUIProvider } from "@heroui/react";
  import App from "./App";
  import "./index.css";
+import { LangProvider } from "./contexts/LanguageContext";
 
  ReactDOM.createRoot(document.getElementById("root")).render(
    <React.StrictMode>
-     <HeroUIProvider>
+     <LangProvider>
        <BrowserRouter>
          <App />
        </BrowserRouter>
-     </HeroUIProvider>
+     </LangProvider>
    </React.StrictMode>
  );

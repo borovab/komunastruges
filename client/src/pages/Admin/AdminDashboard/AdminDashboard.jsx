@@ -1,13 +1,15 @@
-// AdminDashboard.jsx (FULL) - statistika + grafik 7-ditor (COUNT per day from date/createdAt)
-// ✅ updated for backend: timeOut/timeReturn, departmentName, reasonChoice/reasonText (no timeLeft)
+// AdminDashboard.jsx (FULL) - i18n (sq/mk) with LangContext
 import React from "react";
 import { api } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext";
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
 
 export default function AdminDashboard() {
+  const { t } = useLang();
+
   const [reports, setReports] = React.useState([]);
   const [users, setUsers] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -27,7 +29,7 @@ export default function AdminDashboard() {
       setReports(r.reports || []);
       setUsers(u.users || []);
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("common.errorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -35,6 +37,7 @@ export default function AdminDashboard() {
 
   React.useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const createUser = async (e) => {
@@ -51,10 +54,10 @@ export default function AdminDashboard() {
       setUFullName("");
       setUUsername("");
       setUPassword("");
-      setOkMsg("Punëtori u shtua me sukses.");
+      setOkMsg(t("adminDashboard.ok.workerAdded"));
       await load();
     } catch (e2) {
-      setErr(e2?.message || "Gabim");
+      setErr(e2?.message || t("common.errorGeneric"));
     }
   };
 
@@ -63,10 +66,10 @@ export default function AdminDashboard() {
     setOkMsg("");
     try {
       await api.reviewReport(id);
-      setOkMsg("Raporti u shënua si reviewed.");
+      setOkMsg(t("adminDashboard.ok.reportReviewed"));
       await load();
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("common.errorGeneric"));
     }
   };
 
@@ -85,15 +88,15 @@ export default function AdminDashboard() {
 
   const exportExcel = () => {
     const headers = [
-      "Emri",
-      "Statusi",
-      "Data",
-      "Ora e daljes",
-      "Ora e kthimit",
-      "Drejtoria/Sektori",
-      "Arsyeja",
-      "Krijuar",
-      "Reviewed",
+      t("adminDashboard.csv.name"),
+      t("adminDashboard.csv.status"),
+      t("adminDashboard.csv.date"),
+      t("adminDashboard.csv.timeOut"),
+      t("adminDashboard.csv.timeReturn"),
+      t("adminDashboard.csv.department"),
+      t("adminDashboard.csv.reason"),
+      t("adminDashboard.csv.created"),
+      t("adminDashboard.csv.reviewed"),
     ];
 
     const rows = (reports || []).map((r) => [
@@ -117,7 +120,7 @@ export default function AdminDashboard() {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `raportet-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `${t("adminDashboard.csv.filePrefix")}-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -127,25 +130,22 @@ export default function AdminDashboard() {
 
   /* -------------------- STATS -------------------- */
   const totalReports = reports.length;
-  const reviewedReports = reports.filter(
-    (r) => (r.status || "").trim().toLowerCase() === "reviewed"
-  ).length;
+  const reviewedReports = reports.filter((r) => (r.status || "").trim().toLowerCase() === "reviewed").length;
   const pendingReports = totalReports - reviewedReports;
 
   const totalUsers = users.length;
 
-  // ✅ punëtorë = user + manager (superadmin mos e llogarit fare këtu)
+  // ✅ punëtorë = user (superadmin mos e llogarit fare këtu)
   const workersCount = users.filter((u) => {
     const role = String(u.role || "").trim().toLowerCase();
-    return role === "user" ;
+    return role === "user";
   }).length;
 
   // ✅ vetëm admin (pa superadmin)
   const admins = users.filter((u) => String(u.role || "").trim().toLowerCase() === "admin").length;
 
   const todayISO = new Date().toISOString().slice(0, 10);
-  const reportsToday = reports.filter((r) => String(r.date || "").trim().slice(0, 10) === todayISO)
-    .length;
+  const reportsToday = reports.filter((r) => String(r.date || "").trim().slice(0, 10) === todayISO).length;
 
   /* -------------------- LAST 7 DAYS (COUNT PER DAY) -------------------- */
   const last7 = (() => {
@@ -192,13 +192,7 @@ export default function AdminDashboard() {
           aria-hidden="true"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
-            <path
-              d="M7 13l3 3 7-7"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            <path d="M7 13l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
       </div>
@@ -210,8 +204,8 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Admin • Panel</h2>
-          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">Statistika + raportet e fundit.</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">{t("adminDashboard.headerTitle")}</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">{t("adminDashboard.headerSubtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:flex sm:items-center gap-2">
@@ -220,7 +214,7 @@ export default function AdminDashboard() {
             className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
             onClick={load}
           >
-            Rifresko
+            {t("common.refresh")}
           </button>
 
           <button
@@ -228,9 +222,9 @@ export default function AdminDashboard() {
             className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
             onClick={exportExcel}
             disabled={loading || reports.length === 0}
-            title={reports.length === 0 ? "S’ka raporte për eksport" : "Eksporto raportet"}
+            title={reports.length === 0 ? t("adminDashboard.export.noReportsTitle") : t("adminDashboard.export.title")}
           >
-            Eksporto (Excel)
+            {t("adminDashboard.export.button")}
           </button>
         </div>
       </div>
@@ -249,19 +243,32 @@ export default function AdminDashboard() {
 
       {/* STATS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4">
-        <StatCard title="Raporte totale" value={totalReports} sub={`Sot: ${reportsToday}`} tone="blue" />
-        <StatCard title="Pending" value={pendingReports} sub="Raporte pa review" tone="amber" />
-        <StatCard title="Reviewed" value={reviewedReports} sub="Raporte të verifikuara" tone="emerald" />
-        <StatCard title="Punëtorë" value={workersCount}  />
+        <StatCard
+          title={t("adminDashboard.stats.totalReports")}
+          value={totalReports}
+          sub={t("adminDashboard.stats.today", { n: reportsToday })}
+          tone="blue"
+        />
+        <StatCard
+          title={t("adminDashboard.stats.pending")}
+          value={pendingReports}
+          sub={t("adminDashboard.stats.pendingSub")}
+          tone="amber"
+        />
+        <StatCard
+          title={t("adminDashboard.stats.reviewed")}
+          value={reviewedReports}
+          sub={t("adminDashboard.stats.reviewedSub")}
+          tone="emerald"
+        />
+        <StatCard title={t("adminDashboard.stats.workers")} value={workersCount} />
       </div>
 
       {/* Mini chart 7 days */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-3 sm:p-4 mb-5">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-[13px] sm:text-sm font-semibold text-slate-900">
-            Raporte (7 ditët e fundit)
-          </div>
-          <div className="text-[11px] text-slate-500">Max/ditë: {max7}</div>
+          <div className="text-[13px] sm:text-sm font-semibold text-slate-900">{t("adminDashboard.chart.title")}</div>
+          <div className="text-[11px] text-slate-500">{t("adminDashboard.chart.maxPerDay", { n: max7 })}</div>
         </div>
 
         <div className="mt-3 grid grid-cols-7 gap-1.5 sm:gap-2 items-end">
@@ -272,16 +279,10 @@ export default function AdminDashboard() {
                 <div className="text-[10px] sm:text-[11px] font-semibold text-slate-700">{d.count}</div>
 
                 <div className="w-full h-[64px] sm:h-[72px] flex items-end rounded-xl bg-slate-50 border border-slate-200 px-1">
-                  <div
-                    className="w-full rounded-xl bg-blue-600"
-                    style={{ height: h }}
-                    title={`${d.key}: ${d.count}`}
-                  />
+                  <div className="w-full rounded-xl bg-blue-600" style={{ height: h }} title={`${d.key}: ${d.count}`} />
                 </div>
 
-                <div className="text-[9px] sm:text-[10px] text-slate-500 text-center leading-tight">
-                  {d.key.slice(5)}
-                </div>
+                <div className="text-[9px] sm:text-[10px] text-slate-500 text-center leading-tight">{d.key.slice(5)}</div>
               </div>
             );
           })}
@@ -290,13 +291,11 @@ export default function AdminDashboard() {
 
       {/* Reports list */}
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-[13px] sm:text-sm font-semibold text-slate-900">Të gjitha raportet</h3>
-        {loading ? <div className="text-[12px] text-slate-500">Loading…</div> : null}
+        <h3 className="text-[13px] sm:text-sm font-semibold text-slate-900">{t("adminDashboard.list.title")}</h3>
+        {loading ? <div className="text-[12px] text-slate-500">{t("common.loading")}</div> : null}
       </div>
 
-      {!loading && reports.length === 0 ? (
-        <div className="text-[13px] text-slate-500">S’ka raporte.</div>
-      ) : null}
+      {!loading && reports.length === 0 ? <div className="text-[13px] text-slate-500">{t("adminDashboard.list.empty")}</div> : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
         {reports.map((r) => {
@@ -305,12 +304,9 @@ export default function AdminDashboard() {
             <div key={r.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm p-3 sm:p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">
-                    {r.fullName}
-                  </div>
+                  <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">{r.fullName}</div>
                   <div className="mt-1 text-[11px] sm:text-[12px] text-slate-500">
-                    {r.date} • {r.timeOut} - {r.timeReturn}{" "}
-                    {r.departmentName ? `• ${r.departmentName}` : ""}
+                    {r.date} • {r.timeOut} - {r.timeReturn} {r.departmentName ? `• ${r.departmentName}` : ""}
                   </div>
                 </div>
 
@@ -322,13 +318,11 @@ export default function AdminDashboard() {
                       : "bg-amber-50 text-amber-800 border-amber-200"
                   )}
                 >
-                  {reviewed ? "reviewed" : "pending"}
+                  {reviewed ? t("adminDashboard.status.reviewed") : t("adminDashboard.status.pending")}
                 </span>
               </div>
 
-              <div className="mt-2.5 text-[13px] sm:text-sm text-slate-700 whitespace-pre-wrap">
-                {formatReason(r)}
-              </div>
+              <div className="mt-2.5 text-[13px] sm:text-sm text-slate-700 whitespace-pre-wrap">{formatReason(r)}</div>
 
               <div className="mt-3 flex items-center justify-between gap-3">
                 {!reviewed ? (
@@ -337,11 +331,13 @@ export default function AdminDashboard() {
                     className="h-9 px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition text-[13px] font-semibold"
                     onClick={() => review(r.id)}
                   >
-                    Verifikoje.
+                    {t("adminDashboard.actions.verify")}
                   </button>
                 ) : (
                   <div className="text-[11px] text-slate-500">
-                    Verifikuar: {r.reviewedAt ? new Date(r.reviewedAt).toLocaleString() : "-"}
+                    {t("adminDashboard.verifiedAt", {
+                      date: r.reviewedAt ? new Date(r.reviewedAt).toLocaleString() : "-",
+                    })}
                   </div>
                 )}
               </div>

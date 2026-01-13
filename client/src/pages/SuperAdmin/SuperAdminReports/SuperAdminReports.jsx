@@ -1,7 +1,9 @@
-// src/pages/Admin/AdminReports/AdminReports.jsx
+// src/pages/Admin/AdminReports/AdminReports.jsx (FULL)
+// ✅ i18n (NO SQ fallback) + dep filter + details modal + review + delete
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext"; // 🔁 ndrysho path sipas projektit
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
@@ -22,6 +24,7 @@ function formatReason(r) {
 }
 
 export default function SuperAdminReports() {
+  const { t } = useLang();
   const navigate = useNavigate();
 
   const [loading, setLoading] = React.useState(true);
@@ -45,7 +48,7 @@ export default function SuperAdminReports() {
       setReports(res?.reports || []);
       setDepartments(deps?.departments || []);
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("superAdminReports.errors.generic"));
     } finally {
       setLoading(false);
     }
@@ -67,18 +70,18 @@ export default function SuperAdminReports() {
   };
 
   const deleteReport = async (id) => {
-    if (!window.confirm("A je i sigurt që do ta fshish këtë raportim?")) return;
+    if (!window.confirm(t("superAdminReports.confirm.delete"))) return;
 
     setErr("");
     setOkMsg("");
     setActing(true);
     try {
       await api.deleteReport(id);
-      setOkMsg("Raportimi u fshi.");
+      setOkMsg(t("superAdminReports.ok.deleted"));
       closeDetails();
       await load();
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("superAdminReports.errors.generic"));
       setActing(false);
     }
   };
@@ -89,11 +92,11 @@ export default function SuperAdminReports() {
     setActing(true);
     try {
       await api.reviewReport(id);
-      setOkMsg("Raportimi u verifikua.");
+      setOkMsg(t("superAdminReports.ok.reviewed"));
       closeDetails();
       await load();
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("superAdminReports.errors.generic"));
       setActing(false);
     }
   };
@@ -109,13 +112,18 @@ export default function SuperAdminReports() {
     return m;
   }, [departments]);
 
+  const depLabel =
+    depId === "all"
+      ? t("superAdminReports.filter.allDepartments")
+      : `${t("superAdminReports.filter.department")}: ${depNameById.get(String(depId)) || "—"}`;
+
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Admin • Raportimet</h2>
-          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">Shfaq të gjitha raportimet (Excel list).</p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">{t("superAdminReports.header.title")}</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">{t("superAdminReports.header.subtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:flex sm:items-center gap-2">
@@ -124,7 +132,7 @@ export default function SuperAdminReports() {
             onClick={load}
             className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
           >
-            Rifresko
+            {t("superAdminReports.actions.refresh")}
           </button>
 
           <button
@@ -135,7 +143,7 @@ export default function SuperAdminReports() {
               navigate("/admin", { replace: true });
             }}
           >
-            Paneli
+            {t("superAdminReports.actions.panel")}
           </button>
         </div>
       </div>
@@ -155,18 +163,16 @@ export default function SuperAdminReports() {
 
       {/* Filter row */}
       <div className="mb-3 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-        <div className="text-[12px] sm:text-sm text-slate-600">
-          {depId === "all" ? "Të gjitha departamentet" : `Departamenti: ${depNameById.get(String(depId)) || "—"}`}
-        </div>
+        <div className="text-[12px] sm:text-sm text-slate-600">{depLabel}</div>
 
         <div className="flex items-center gap-2">
-          <label className="text-[11px] font-semibold text-slate-600">Filtro:</label>
+          <label className="text-[11px] font-semibold text-slate-600">{t("superAdminReports.filter.label")}</label>
           <select
             value={depId}
             onChange={(e) => setDepId(e.target.value)}
             className="h-9 sm:h-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
           >
-            <option value="all">Të gjitha</option>
+            <option value="all">{t("superAdminReports.filter.all")}</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -184,35 +190,46 @@ export default function SuperAdminReports() {
               R
             </span>
             <div className="leading-tight min-w-0">
-              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Lista e raportimeve</div>
+              <div className="text-[13px] sm:text-sm font-semibold text-slate-900">
+                {t("superAdminReports.table.title")}
+              </div>
               <div className="text-[11px] sm:text-[12px] text-slate-500">
-                {filteredReports.length} raportime{depId === "all" ? "" : " (filtruar)"}
+                {filteredReports.length} {t("superAdminReports.table.count")}
+                {depId === "all" ? "" : ` (${t("superAdminReports.table.filtered")})`}
               </div>
             </div>
           </div>
 
-          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">Loading…</div> : null}
+          {loading ? <div className="text-[12px] sm:text-sm text-slate-500">{t("superAdminReports.loading")}</div> : null}
         </div>
 
         {!loading && filteredReports.length === 0 ? (
-          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">S’ka raportime.</div>
+          <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">{t("superAdminReports.empty")}</div>
         ) : null}
 
-        {/* EXCEL LIST (vetëm kjo) */}
+        {/* EXCEL LIST */}
         <div className="overflow-auto">
           <table className="w-full text-[13px] sm:text-sm">
             <thead className="bg-slate-50">
               <tr className="text-left text-slate-600">
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold w-[60px] sm:w-[70px]">#</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Punëtori</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Data</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Time out</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Time return</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Arsye</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Status</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Departamenti</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">Krijuar</th>
-                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-right">Veprime</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold w-[60px] sm:w-[70px]">
+                  {t("superAdminReports.columns.no")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("superAdminReports.columns.worker")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("superAdminReports.columns.date")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("superAdminReports.columns.timeOut")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {t("superAdminReports.columns.timeReturn")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("superAdminReports.columns.reason")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("superAdminReports.columns.status")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">
+                  {t("superAdminReports.columns.department")}
+                </th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold">{t("superAdminReports.columns.created")}</th>
+                <th className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-right">
+                  {t("superAdminReports.columns.actions")}
+                </th>
               </tr>
             </thead>
 
@@ -222,7 +239,7 @@ export default function SuperAdminReports() {
                   key={r.id}
                   onClick={() => openDetails(r)}
                   className="cursor-pointer hover:bg-slate-50 transition"
-                  title="Kliko për detaje"
+                  title={t("superAdminReports.table.clickForDetails")}
                 >
                   <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-500">{idx + 1}</td>
                   <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-medium text-slate-900">{r.fullName || "—"}</td>
@@ -255,11 +272,11 @@ export default function SuperAdminReports() {
                         )}
                         disabled={acting}
                       >
-                        {acting ? "..." : "Verifikoje"}
+                        {acting ? "..." : t("superAdminReports.actions.verify")}
                       </button>
                     ) : (
                       <span className="inline-flex items-center h-8 sm:h-9 px-3 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 text-[11px] sm:text-xs font-semibold">
-                        Verified
+                        {t("superAdminReports.labels.verified")}
                       </span>
                     )}
                   </td>
@@ -282,8 +299,8 @@ export default function SuperAdminReports() {
                     {open.fullName || "—"} • {open.departmentName || depNameById.get(String(open.departmentId)) || "—"}
                   </div>
                   <div className="text-[11px] sm:text-[12px] text-slate-500 truncate">
-                    {open.createdAt ? new Date(open.createdAt).toLocaleString() : "—"} • Status:{" "}
-                    <span className="font-semibold text-slate-700">{statusLabel(open.status)}</span>
+                    {open.createdAt ? new Date(open.createdAt).toLocaleString() : "—"} • {t("superAdminReports.modal.status")}
+                    : <span className="font-semibold text-slate-700">{statusLabel(open.status)}</span>
                   </div>
                 </div>
 
@@ -291,7 +308,7 @@ export default function SuperAdminReports() {
                   type="button"
                   onClick={closeDetails}
                   className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition grid place-items-center"
-                  aria-label="Mbyll"
+                  aria-label={t("superAdminReports.actions.close")}
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
                     <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -302,24 +319,24 @@ export default function SuperAdminReports() {
               <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Punëtori</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">{t("superAdminReports.modal.worker")}</div>
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">{open.fullName || "—"}</div>
                   </div>
 
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Departamenti</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">{t("superAdminReports.modal.department")}</div>
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">
                       {open.departmentName || depNameById.get(String(open.departmentId)) || "—"}
                     </div>
                   </div>
 
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Data</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">{t("superAdminReports.modal.date")}</div>
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">{open.date || "—"}</div>
                   </div>
 
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                    <div className="text-[10px] sm:text-[11px] text-slate-500">Koha</div>
+                    <div className="text-[10px] sm:text-[11px] text-slate-500">{t("superAdminReports.modal.time")}</div>
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">
                       {open.timeOut || "—"} - {open.timeReturn || "—"}
                     </div>
@@ -327,7 +344,7 @@ export default function SuperAdminReports() {
                 </div>
 
                 <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
-                  <div className="text-[10px] sm:text-[11px] text-slate-500">Arsye</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-500">{t("superAdminReports.modal.reason")}</div>
                   <div className="text-[13px] sm:text-sm text-slate-900 mt-2 whitespace-pre-wrap break-words">
                     {formatReason(open)}
                   </div>
@@ -341,7 +358,7 @@ export default function SuperAdminReports() {
                   className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
                   disabled={acting}
                 >
-                  Mbyll
+                  {t("superAdminReports.actions.close")}
                 </button>
 
                 {statusLabel(open.status) !== "reviewed" ? (
@@ -354,7 +371,7 @@ export default function SuperAdminReports() {
                     )}
                     disabled={acting}
                   >
-                    {acting ? "..." : "Verifikoje"}
+                    {acting ? "..." : t("superAdminReports.actions.verify")}
                   </button>
                 ) : null}
 
@@ -369,7 +386,7 @@ export default function SuperAdminReports() {
                   )}
                   disabled={acting}
                 >
-                  Fshi
+                  {t("superAdminReports.actions.delete")}
                 </button>
               </div>
             </div>

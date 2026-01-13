@@ -1,12 +1,15 @@
-// src/pages/Admin/AdminDepartments/AdminDepartments.jsx
+// src/pages/Admin/AdminDepartments/AdminDepartments.jsx (i18n sq/mk)
 import React from "react";
 import { api } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext";
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
 
 export default function AdminDepartments() {
+  const { t } = useLang();
+
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState("");
   const [ok, setOk] = React.useState("");
@@ -28,7 +31,7 @@ export default function AdminDepartments() {
       setUsers((u.users || []).filter((x) => String(x?.role || "").trim().toLowerCase() !== "superadmin"));
       setReports(r.reports || []);
     } catch (e) {
-      setErr(e?.message || "Gabim");
+      setErr(e?.message || t("common.errorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -36,6 +39,7 @@ export default function AdminDepartments() {
 
   React.useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const selectedDep = React.useMemo(() => {
@@ -77,10 +81,8 @@ export default function AdminDepartments() {
     <div className="mx-auto max-w-5xl px-3 sm:px-4 py-4 sm:py-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Departamentet</h2>
-          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">
-            Lista e departamenteve + statistika (punëtorë & raporte).
-          </p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">{t("adminDepartments.title")}</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">{t("adminDepartments.subtitle")}</p>
         </div>
 
         <button
@@ -88,7 +90,7 @@ export default function AdminDepartments() {
           onClick={load}
           className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
         >
-          Rifresko
+          {t("common.refresh")}
         </button>
       </div>
 
@@ -109,17 +111,18 @@ export default function AdminDepartments() {
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-slate-900">Lista</div>
+              <div className="text-sm font-semibold text-slate-900">{t("adminDepartments.list.title")}</div>
               <div className="text-[11px] text-slate-500 mt-1">
-                Totali: <b className="text-slate-700">{departments.length}</b>
+                {t("adminDepartments.list.total")}:{" "}
+                <b className="text-slate-700">{departments.length}</b>
               </div>
             </div>
 
-            {loading ? <div className="text-sm text-slate-500">Loading…</div> : null}
+            {loading ? <div className="text-sm text-slate-500">{t("common.loading")}</div> : null}
           </div>
 
           {!loading && departments.length === 0 ? (
-            <div className="mt-3 text-sm text-slate-500">S’ka departamente.</div>
+            <div className="mt-3 text-sm text-slate-500">{t("adminDepartments.list.empty")}</div>
           ) : null}
 
           <div className="mt-3 grid gap-2">
@@ -135,9 +138,7 @@ export default function AdminDepartments() {
                   onClick={() => setSelectedDepId(d.id)}
                   className={cn(
                     "w-full text-left rounded-2xl border p-3 transition",
-                    active
-                      ? "border-blue-200 bg-blue-50"
-                      : "border-slate-200 bg-white hover:bg-slate-50"
+                    active ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white hover:bg-slate-50"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -150,10 +151,10 @@ export default function AdminDepartments() {
 
                     <div className="shrink-0 flex flex-col items-end gap-1">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
-                        {workers} punëtorë
+                        {t("adminDepartments.badges.workers", { n: workers })}
                       </span>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-50 text-slate-700 border-slate-200">
-                        {reps} raporte
+                        {t("adminDepartments.badges.reports", { n: reps })}
                       </span>
                     </div>
                   </div>
@@ -165,11 +166,11 @@ export default function AdminDepartments() {
 
         {/* Details */}
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-4">
-          <div className="text-sm font-semibold text-slate-900">Detajet</div>
-          <div className="text-[11px] text-slate-500 mt-1">Kliko një departament për të parë statistikat.</div>
+          <div className="text-sm font-semibold text-slate-900">{t("adminDepartments.details.title")}</div>
+          <div className="text-[11px] text-slate-500 mt-1">{t("adminDepartments.details.hint")}</div>
 
           {!selectedDepId ? (
-            <div className="mt-4 text-sm text-slate-500">Zgjidh një departament nga lista majtas.</div>
+            <div className="mt-4 text-sm text-slate-500">{t("adminDepartments.details.pickFromLeft")}</div>
           ) : (
             <div className="mt-4">
               <div className="flex items-start justify-between gap-3">
@@ -185,27 +186,27 @@ export default function AdminDepartments() {
                   onClick={() => setSelectedDepId(null)}
                   className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-semibold"
                 >
-                  Mbyll
+                  {t("common.close")}
                 </button>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="text-[11px] font-semibold text-slate-500">Punëtorë</div>
+                  <div className="text-[11px] font-semibold text-slate-500">{t("adminDepartments.cards.workersTitle")}</div>
                   <div className="mt-1 text-2xl font-extrabold text-slate-900">{selectedWorkersCount}</div>
-                  <div className="mt-1 text-[11px] text-slate-500">në këtë departament</div>
+                  <div className="mt-1 text-[11px] text-slate-500">{t("adminDepartments.cards.workersSub")}</div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="text-[11px] font-semibold text-slate-500">Raporte</div>
+                  <div className="text-[11px] font-semibold text-slate-500">{t("adminDepartments.cards.reportsTitle")}</div>
                   <div className="mt-1 text-2xl font-extrabold text-slate-900">{selectedReportsCount}</div>
-                  <div className="mt-1 text-[11px] text-slate-500">të dërguara</div>
+                  <div className="mt-1 text-[11px] text-slate-500">{t("adminDepartments.cards.reportsSub")}</div>
                 </div>
               </div>
 
               {/* optional list of workers in that department */}
               <div className="mt-4">
-                <div className="text-[12px] font-semibold text-slate-700 mb-2">Punëtorët</div>
+                <div className="text-[12px] font-semibold text-slate-700 mb-2">{t("adminDepartments.workersList.title")}</div>
 
                 <div className="rounded-2xl border border-slate-200 overflow-hidden">
                   <div className="divide-y divide-slate-200">
@@ -219,14 +220,15 @@ export default function AdminDepartments() {
                       ))}
 
                     {selectedWorkersCount === 0 ? (
-                      <div className="px-3 py-3 bg-white text-[13px] text-slate-500">S’ka punëtorë.</div>
+                      <div className="px-3 py-3 bg-white text-[13px] text-slate-500">
+                        {t("adminDepartments.workersList.empty")}
+                      </div>
                     ) : null}
                   </div>
                 </div>
               </div>
 
               {/* optional: reports count note */}
-           
             </div>
           )}
         </div>

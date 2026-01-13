@@ -1,6 +1,9 @@
+// src/pages/SuperAdmin/SuperAdminAddUser/SuperAdminAddUser.jsx (FULL)
+// ✅ i18n (NO SQ fallback) + translations below
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../../lib/api";
+import { useLang } from "../../../contexts/LanguageContext"; // 🔁 ndrysho path sipas projektit
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
@@ -12,6 +15,7 @@ function needsDepartmentForRole(r) {
 
 export default function SuperAdminAddUser() {
   const navigate = useNavigate();
+  const { t } = useLang();
 
   const [fullName, setFullName] = React.useState("");
   const [username, setUsername] = React.useState("");
@@ -34,7 +38,7 @@ export default function SuperAdminAddUser() {
     setDepsLoading(true);
     try {
       const r = await api.listDepartments();
-      const list = r.departments || [];
+      const list = r?.departments || [];
       setDepartments(list);
 
       // auto-select first department for user/manager if empty
@@ -42,7 +46,7 @@ export default function SuperAdminAddUser() {
         setDepartmentId(String(list[0].id));
       }
     } catch (e) {
-      setErr(e?.message || "Nuk u arrit me i marrë departamentet.");
+      setErr(e?.message || t("superAdminAddUser.errors.loadDepartmentsFailed"));
     } finally {
       setDepsLoading(false);
     }
@@ -60,7 +64,7 @@ export default function SuperAdminAddUser() {
     if (!nd) {
       setDepartmentId("");
       // nëse ishte error-i i departmentit, hiqe
-      setErr((prev) => (prev === "Zgjidh departamentin." ? "" : prev));
+      setErr((prev) => (prev === t("superAdminAddUser.errors.pickDepartment") ? "" : prev));
       return;
     }
 
@@ -76,21 +80,21 @@ export default function SuperAdminAddUser() {
     const n = fullName.trim();
     const nd = needsDepartmentForRole(role);
 
-    if (!n) return "Shkruaj emrin dhe mbiemrin.";
-    if (!u) return "Shkruaj username.";
-    if (u.length < 3) return "Username duhet të ketë të paktën 3 karaktere.";
+    if (!n) return t("superAdminAddUser.errors.fullNameRequired");
+    if (!u) return t("superAdminAddUser.errors.usernameRequired");
+    if (u.length < 3) return t("superAdminAddUser.errors.usernameMin3");
 
     if (role !== "admin" && role !== "user" && role !== "manager" && role !== "superadmin") {
-      return "Roli nuk është valid.";
+      return t("superAdminAddUser.errors.roleInvalid");
     }
 
     if (nd) {
-      if (!departmentId) return "Zgjidh departamentin.";
+      if (!departmentId) return t("superAdminAddUser.errors.pickDepartment");
     }
 
-    if (!password) return "Shkruaj password.";
-    if (password.length < 6) return "Password duhet të ketë të paktën 6 karaktere.";
-    if (password !== confirmPassword) return "Password-at nuk përputhen.";
+    if (!password) return t("superAdminAddUser.errors.passwordRequired");
+    if (password.length < 6) return t("superAdminAddUser.errors.passwordMin6");
+    if (password !== confirmPassword) return t("superAdminAddUser.errors.passwordMismatch");
 
     return "";
   };
@@ -120,7 +124,7 @@ export default function SuperAdminAddUser() {
 
       await api.createUser(payload);
 
-      setOk("Përdoruesi u krijua me sukses.");
+      setOk(t("superAdminAddUser.ok.created"));
       setFullName("");
       setUsername("");
       setPassword("");
@@ -132,7 +136,7 @@ export default function SuperAdminAddUser() {
 
       setTimeout(() => navigate("/superadmin/workers"), 600);
     } catch (e2) {
-      setErr(e2?.message || "Gabim gjatë krijimit të përdoruesit.");
+      setErr(e2?.message || t("superAdminAddUser.errors.createFailed"));
     } finally {
       setLoading(false);
     }
@@ -143,8 +147,8 @@ export default function SuperAdminAddUser() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Shto përdorues</h1>
-          <p className="text-sm text-slate-500 mt-1">Krijo llogari të re për superadmin, admin, manager ose user.</p>
+          <h1 className="text-lg font-bold text-slate-900">{t("superAdminAddUser.headerTitle")}</h1>
+          <p className="text-sm text-slate-500 mt-1">{t("superAdminAddUser.headerSubtitle")}</p>
         </div>
 
         <button
@@ -152,7 +156,7 @@ export default function SuperAdminAddUser() {
           onClick={() => navigate("/superadmin/workers")}
           className="h-10 px-4 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
         >
-          Kthehu
+          {t("superAdminAddUser.actions.back")}
         </button>
       </div>
 
@@ -162,8 +166,8 @@ export default function SuperAdminAddUser() {
           <div className="flex items-center gap-2">
             <span className="h-9 w-9 rounded-2xl bg-blue-600 text-white grid place-items-center font-extrabold">+</span>
             <div className="leading-tight">
-              <div className="text-sm font-semibold text-slate-900">Add User</div>
-              <div className="text-[12px] text-slate-500">Forma e krijimit</div>
+              <div className="text-sm font-semibold text-slate-900">{t("superAdminAddUser.cardTitle")}</div>
+              <div className="text-[12px] text-slate-500">{t("superAdminAddUser.cardSubtitle")}</div>
             </div>
           </div>
         </div>
@@ -185,31 +189,38 @@ export default function SuperAdminAddUser() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Full name */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-2">Emri dhe mbiemri</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("superAdminAddUser.form.fullName")}
+              </label>
               <input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="p.sh. John Doe"
+                placeholder={t("superAdminAddUser.placeholders.fullName")}
               />
             </div>
 
             {/* Username */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Username</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("superAdminAddUser.form.username")}
+              </label>
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="p.sh. johndoe"
+                placeholder={t("superAdminAddUser.placeholders.username")}
                 autoComplete="off"
               />
-              <p className="mt-2 text-[11px] text-slate-500">Pa hapësira. Minimum 3 karaktere.</p>
+              <p className="mt-2 text-[11px] text-slate-500">{t("superAdminAddUser.hints.username")}</p>
             </div>
 
             {/* Role */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Roli</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("superAdminAddUser.form.role")}
+              </label>
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   type="button"
@@ -221,7 +232,7 @@ export default function SuperAdminAddUser() {
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   )}
                 >
-                  User
+                  {t("superAdminAddUser.roles.user")}
                 </button>
 
                 <button
@@ -234,7 +245,7 @@ export default function SuperAdminAddUser() {
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   )}
                 >
-                  Manager
+                  {t("superAdminAddUser.roles.manager")}
                 </button>
 
                 <button
@@ -247,7 +258,7 @@ export default function SuperAdminAddUser() {
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   )}
                 >
-                  Admin
+                  {t("superAdminAddUser.roles.admin")}
                 </button>
 
                 <button
@@ -260,18 +271,18 @@ export default function SuperAdminAddUser() {
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   )}
                 >
-                  SuperAdmin
+                  {t("superAdminAddUser.roles.superadmin")}
                 </button>
               </div>
 
-              <p className="mt-2 text-[11px] text-slate-500">
-                User/Manager lidhen me departament. Admin/SuperAdmin jo.
-              </p>
+              <p className="mt-2 text-[11px] text-slate-500">{t("superAdminAddUser.hints.role")}</p>
             </div>
 
             {/* Department (only for user/manager) */}
             <div className={cn(needsDepartment ? "md:col-span-2" : "hidden")}>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Departamenti</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("superAdminAddUser.form.department")}
+              </label>
 
               <div className="flex gap-2 items-center">
                 <select
@@ -280,10 +291,12 @@ export default function SuperAdminAddUser() {
                   disabled={depsLoading || !departments.length}
                   className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50"
                 >
-                  {depsLoading ? <option value="">Duke i ngarkuar…</option> : null}
+                  {depsLoading ? <option value="">{t("superAdminAddUser.deps.loading")}</option> : null}
+
                   {!depsLoading && departments.length === 0 ? (
-                    <option value="">S’ka departamente (krijo në /superadmin/departments)</option>
+                    <option value="">{t("superAdminAddUser.deps.empty")}</option>
                   ) : null}
+
                   {!depsLoading &&
                     departments.map((d) => (
                       <option key={d.id} value={String(d.id)}>
@@ -296,39 +309,41 @@ export default function SuperAdminAddUser() {
                   type="button"
                   onClick={loadDepartments}
                   className="h-11 px-4 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
-                  title="Rifresko departamentet"
+                  title={t("superAdminAddUser.actions.refreshDepartments")}
                 >
                   ↻
                 </button>
               </div>
 
-              <p className="mt-2 text-[11px] text-slate-500">
-                Nëse s’ka departamente, krijoji te <b>/superadmin/departments</b>.
-              </p>
+              <p className="mt-2 text-[11px] text-slate-500">{t("superAdminAddUser.hints.departments")}</p>
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Password</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("superAdminAddUser.form.password")}
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="Minimum 6 karaktere"
+                placeholder={t("superAdminAddUser.placeholders.password")}
                 autoComplete="new-password"
               />
             </div>
 
             {/* Confirm password */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Konfirmo password</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">
+                {t("superAdminAddUser.form.confirmPassword")}
+              </label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                placeholder="Shkruaje përsëri"
+                placeholder={t("superAdminAddUser.placeholders.confirmPassword")}
                 autoComplete="new-password"
               />
             </div>
@@ -340,7 +355,7 @@ export default function SuperAdminAddUser() {
               disabled={loading}
               className="h-11 px-5 rounded-2xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Duke krijuar..." : "Krijo përdorues"}
+              {loading ? t("superAdminAddUser.actions.creating") : t("superAdminAddUser.actions.create")}
             </button>
 
             <button
@@ -348,7 +363,7 @@ export default function SuperAdminAddUser() {
               onClick={() => navigate("/superadmin/workers")}
               className="h-11 px-5 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-sm font-semibold"
             >
-              Anulo
+              {t("superAdminAddUser.actions.cancel")}
             </button>
           </div>
         </form>
