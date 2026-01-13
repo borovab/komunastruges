@@ -612,6 +612,7 @@ app.post("/api/reports", requireAnyRole(["user", "manager"]), async (req, res) =
 
     const reasonChoice = String(req.body?.reasonChoice || "").trim();
     const reasonText = String(req.body?.reasonText || "").trim();
+    const raport = String(req.body?.raport || "").trim(); // ✅ NEW (optional)
 
     const timeOut = String(req.body?.timeOut || req.body?.timeLeft || "").trim(); // HH:MM
     const timeReturnRaw = req.body?.timeReturn;
@@ -627,12 +628,12 @@ app.post("/api/reports", requireAnyRole(["user", "manager"]), async (req, res) =
       `
       INSERT INTO reports (
         id, user_id, department_id,
-        reason, reason_choice, reason_text,
+        reason, reason_choice, reason_text, report_text,
         report_date, time_out, time_return, status
       )
       VALUES (
         :id, :userId, :departmentId,
-        :reason, :reasonChoice, :reasonText,
+        :reason, :reasonChoice, :reasonText, :reportText,
         :date, :timeOut, :timeReturn, 'submitted'
       )
       `,
@@ -643,6 +644,7 @@ app.post("/api/reports", requireAnyRole(["user", "manager"]), async (req, res) =
         reason: reasonChoice,
         reasonChoice,
         reasonText,
+        reportText: raport || null, // ✅ NEW
         date,
         timeOut,
         timeReturn: timeReturn || null,
@@ -668,6 +670,7 @@ app.get("/api/reports", requireAuth(), async (req, res) => {
                r.reason,
                r.reason_choice,
                r.reason_text,
+               r.report_text,
                DATE_FORMAT(r.report_date, '%Y-%m-%d') AS report_date,
                TIME_FORMAT(r.time_out, '%H:%i') AS time_out,
                TIME_FORMAT(r.time_return, '%H:%i') AS time_return,
@@ -714,6 +717,7 @@ app.get("/api/reports", requireAuth(), async (req, res) => {
         reason: r.reason,
         reasonChoice: r.reason_choice || r.reason || null,
         reasonText: r.reason_text || null,
+        raport: r.report_text || null, // ✅ NEW
 
         date: r.report_date,
 
@@ -730,6 +734,7 @@ app.get("/api/reports", requireAuth(), async (req, res) => {
     return res.status(500).json({ error: e?.message || "Server error" });
   }
 });
+
 
 app.patch("/api/reports/:id/review", requireAnyRole(["admin", "manager", "superadmin"]), async (req, res) => {
   try {
@@ -766,6 +771,7 @@ app.put("/api/reports/:id", requireAnyRole(["user", "manager"]), async (req, res
     const date = String(req.body?.date || "").trim(); // YYYY-MM-DD
     const reasonChoice = String(req.body?.reasonChoice || "").trim();
     const reasonText = String(req.body?.reasonText || "").trim();
+    const raport = String(req.body?.raport || "").trim(); // ✅ NEW (optional)
 
     const timeOut = String(req.body?.timeOut || req.body?.timeLeft || "").trim(); // HH:MM
 
@@ -792,6 +798,7 @@ app.put("/api/reports/:id", requireAnyRole(["user", "manager"]), async (req, res
       SET reason=:reason,
           reason_choice=:reasonChoice,
           reason_text=:reasonText,
+          report_text=:reportText,
           report_date=:date,
           time_out=:timeOut,
           time_return=:timeReturn
@@ -803,6 +810,7 @@ app.put("/api/reports/:id", requireAnyRole(["user", "manager"]), async (req, res
         reason: reasonChoice,
         reasonChoice,
         reasonText,
+        reportText: raport || null, // ✅ NEW
         date,
         timeOut,
         timeReturn: timeReturn || null,
@@ -814,7 +822,6 @@ app.put("/api/reports/:id", requireAnyRole(["user", "manager"]), async (req, res
     return res.status(500).json({ error: e?.message || "Server error" });
   }
 });
-
 app.get("/api/health", async (_, res) => {
   return res.json({ ok: true });
 });

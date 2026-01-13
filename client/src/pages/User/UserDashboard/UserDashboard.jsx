@@ -72,6 +72,7 @@ export default function UserDashboard() {
   const [timeReturn, setTimeReturn] = React.useState("");
   const [reasonChoice, setReasonChoice] = React.useState("");
   const [reasonText, setReasonText] = React.useState("");
+  const [raport, setRaport] = React.useState(""); // ✅ NEW (opsionale)
 
   const load = async () => {
     setLoading(true);
@@ -115,6 +116,7 @@ export default function UserDashboard() {
     setTimeReturn("");
     setReasonChoice("");
     setReasonText("");
+    setRaport(""); // ✅ NEW
   };
 
   const submit = async (e) => {
@@ -131,6 +133,7 @@ export default function UserDashboard() {
       const payload = {
         reasonChoice,
         reasonText,
+        ...(raport ? { raport } : {}), // ✅ NEW (mos e dërgo fare kur është bosh)
         date,
         timeOut,
         ...(timeReturn ? { timeReturn } : {}), // ✅ mos e dërgo fare kur është bosh
@@ -312,6 +315,20 @@ export default function UserDashboard() {
             placeholder="Shkruaj shënim..."
           />
         </div>
+
+        {/* ✅ NEW */}
+        <div className="relative z-10">
+          <label className={MobileLabel}>Raport (opsionale)</label>
+          <textarea
+            value={raport}
+            onChange={(e) => setRaport(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.stopPropagation();
+            }}
+            className={MobileTextarea}
+            placeholder="Shkruaj raport..."
+          />
+        </div>
       </div>
 
       <div className="p-4 border-t border-slate-200 bg-white">
@@ -363,13 +380,21 @@ export default function UserDashboard() {
                   <td className="px-3 py-2 whitespace-nowrap">{r.departmentName || deptName || "—"}</td>
                   <td className="px-3 py-2">
                     <div className="font-medium">{r.reasonChoice || r.reason || "—"}</div>
+
                     {r.reasonText ? (
                       <div className="text-[11px] text-slate-500 truncate max-w-[220px]">{r.reasonText}</div>
                     ) : null}
+
+                    {/* ✅ NEW */}
+                    {r.raport ? (
+                      <div className="text-[11px] text-slate-500 truncate max-w-[220px]">{r.raport}</div>
+                    ) : null}
+
                     <div className="mt-1 text-[11px] text-slate-500">
                       {r.timeOut || r.timeLeft ? `Dalja: ${r.timeOut || r.timeLeft}` : ""}
                       {r.timeReturn ? ` • Kthimi: ${r.timeReturn}` : ""}
                     </div>
+
                     <div className="mt-1">
                       <span
                         className={cn(
@@ -494,6 +519,20 @@ export default function UserDashboard() {
               placeholder="Shkruaj shënim..."
             />
           </div>
+
+          {/* ✅ NEW */}
+          <div className="relative z-10">
+            <label className="block text-xs font-medium text-slate-700 mb-2">Raport (opsionale)</label>
+            <textarea
+              value={raport}
+              onChange={(e) => setRaport(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.stopPropagation();
+              }}
+              className="w-full min-h-[110px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+              placeholder="Shkruaj raport..."
+            />
+          </div>
         </div>
 
         <div className="px-5 py-4 border-t border-slate-200 bg-white flex flex-col sm:flex-row gap-2 sm:justify-end">
@@ -531,6 +570,7 @@ export default function UserDashboard() {
                   <th className="px-4 py-3 font-semibold">Ora e daljes</th>
                   <th className="px-4 py-3 font-semibold">Ora e kthimit</th>
                   <th className="px-4 py-3 font-semibold">Arsye</th>
+                  <th className="px-4 py-3 font-semibold">Raport</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold">Drejtoria</th>
                   <th className="px-4 py-3 font-semibold">Krijuar</th>
@@ -550,6 +590,7 @@ export default function UserDashboard() {
                         <div className="text-xs text-slate-500 truncate max-w-[560px]">{r.reasonText}</div>
                       ) : null}
                     </td>
+                    <td className="px-4 py-3 text-slate-700">{r.raport ? r.raport : "—"}</td>
                     <td className="px-4 py-3">
                       <span
                         className={cn(
