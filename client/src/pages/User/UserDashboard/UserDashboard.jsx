@@ -125,16 +125,18 @@ export default function UserDashboard() {
     if (!reasonChoice) return setErr("Zgjidh arsyen.");
     if (!date) return setErr("Zgjidh datën.");
     if (!timeOut) return setErr("Zgjidh orën e daljes.");
-    if (!timeReturn) return setErr("Zgjidh orën e kthimit.");
+    // ✅ timeReturn opsionale
 
     try {
-      await api.createReport({
+      const payload = {
         reasonChoice,
         reasonText,
         date,
         timeOut,
-        timeReturn,
-      });
+        ...(timeReturn ? { timeReturn } : {}), // ✅ mos e dërgo fare kur është bosh
+      };
+
+      await api.createReport(payload);
 
       resetForm();
       setOkMsg("Raporti u dërgua me sukses.");
@@ -227,7 +229,6 @@ export default function UserDashboard() {
     </div>
   );
 
-  // ✅ MOBILE: inputs smaller (height, padding, text size)
   const MobileInput =
     "w-full h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100";
   const MobileROInput = "w-full h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none";
@@ -235,7 +236,7 @@ export default function UserDashboard() {
   const MobileTextarea =
     "w-full min-h-[80px] rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100";
 
-  const MobileForm = () => (
+  const renderMobileForm = () => (
     <form onSubmit={submit} className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
         <div className="text-sm font-semibold text-slate-900">Regjistro Daljen</div>
@@ -288,7 +289,7 @@ export default function UserDashboard() {
             </div>
 
             <div>
-              <label className={MobileLabel}>Ora e kthimit</label>
+              <label className={MobileLabel}>Ora e kthimit (opsionale)</label>
               <input
                 type="time"
                 value={timeReturn}
@@ -299,11 +300,14 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        <div>
+        <div className="relative z-10">
           <label className={MobileLabel}>Shënim (opsionale)</label>
           <textarea
             value={reasonText}
             onChange={(e) => setReasonText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.stopPropagation();
+            }}
             className={MobileTextarea}
             placeholder="Shkruaj shënim..."
           />
@@ -388,7 +392,7 @@ export default function UserDashboard() {
     </div>
   );
 
-  const DesktopUI = () => (
+  const renderDesktopUI = () => (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="flex items-start justify-between gap-3 mb-5">
         <div>
@@ -444,7 +448,7 @@ export default function UserDashboard() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-2">Ora e kthimit</label>
+              <label className="block text-xs font-medium text-slate-700 mb-2">Ora e kthimit (opsionale)</label>
               <input
                 type="time"
                 value={timeReturn}
@@ -478,11 +482,14 @@ export default function UserDashboard() {
             </div>
           </div>
 
-          <div>
+          <div className="relative z-10">
             <label className="block text-xs font-medium text-slate-700 mb-2">Shënim / Arsye (opsionale)</label>
             <textarea
               value={reasonText}
               onChange={(e) => setReasonText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.stopPropagation();
+              }}
               className="w-full min-h-[110px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
               placeholder="Shkruaj shënim..."
             />
@@ -589,13 +596,11 @@ export default function UserDashboard() {
         ) : null}
 
         {mView === "home" ? <MobileHome /> : null}
-        {mView === "form" ? <MobileForm /> : null}
+        {mView === "form" ? renderMobileForm() : null}
         {mView === "list" ? <MobileList /> : null}
       </div>
 
-      <div className="hidden sm:block">
-        <DesktopUI />
-      </div>
+      <div className="hidden sm:block">{renderDesktopUI()}</div>
     </>
   );
 }

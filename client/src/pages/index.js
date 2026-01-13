@@ -11,3 +11,10 @@ export {default as ManagerWorkers} from "./Manager/ManagerWorkers/ManagerWorkers
 export {default as ManagerAddUser} from "./Manager/ManagerAddUser/ManagerAddUser.jsx";
 export {default as ManagerReports} from "./Manager/ManagerReports/ManagerReports.jsx";
 export {default as ManagerProfile} from "./Manager/ManagerProfile/ManagerProfile.jsx";
+
+export {default as SuperAdminDashboard} from "./SuperAdmin/SuperAdminDashboard/SuperAdminDashboard.jsx";
+export {default as SuperAdminProfile} from "./SuperAdmin/SuperAdminProfile/SuperAdminProfile.jsx";
+export {default as SuperAdminWorkers} from "./SuperAdmin/SuperAdminWorkers/SuperAdminWorkers.jsx";
+export {default as SuperAdminAddUser} from "./SuperAdmin/SuperAdminAddUser/SuperAdminAddUser.jsx";
+export {default as SuperAdminReports} from "./SuperAdmin/SuperAdminReports/SuperAdminReports.jsx";
+export {default as SuperAdminDepartments} from "./SuperAdmin/SuperAdminDepartments/SuperAdminDepartments.jsx";

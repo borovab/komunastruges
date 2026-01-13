@@ -22,6 +22,7 @@ const allowedOrigins = String(CORS_ORIGIN)
   .map((s) => s.trim())
   .filter(Boolean);
 
+// ✅ MOS E PREK CORS/ORIGIN (siç e ke)
 app.use(
   cors({
     origin: (origin, cb) => {
@@ -29,6 +30,7 @@ app.use(
       if (allowedOrigins.includes(origin)) return cb(null, true);
       return cb(new Error("CORS blocked: " + origin));
     },
+    origin: true,
     credentials: false,
   })
 );
@@ -90,7 +92,6 @@ function requireAnyRole(roles) {
       if (!me) return res.status(401).json({ error: "Unauthorized" });
 
       const allowed = (roles || []).map(normRole);
-      console.log("[AUTH]", { meRole: me.role, allowed, userId: me.id, username: me.username });
       if (allowed.length && !allowed.includes(me.role)) return res.status(403).json({ error: "Forbidden" });
 
       req.user = me;
@@ -200,10 +201,11 @@ app.put("/api/profile", requireAuth(), async (req, res) => {
 
     if (password) {
       const passwordHash = await bcrypt.hash(password, 10);
-      await pool.query(
-        `UPDATE users SET full_name=:fullName, password_hash=:passwordHash WHERE id=:id`,
-        { id: req.user.id, fullName, passwordHash }
-      );
+      await pool.query(`UPDATE users SET full_name=:fullName, password_hash=:passwordHash WHERE id=:id`, {
+        id: req.user.id,
+        fullName,
+        passwordHash,
+      });
     } else {
       await pool.query(`UPDATE users SET full_name=:fullName WHERE id=:id`, {
         id: req.user.id,
@@ -240,7 +242,8 @@ app.get("/api/departments", requireAuth(), async (req, res) => {
   }
 });
 
-app.post("/api/departments", requireAuth("admin"), async (req, res) => {
+// ✅ superadmin lejohet si admin
+app.post("/api/departments", requireAnyRole(["admin", "superadmin"]), async (req, res) => {
   try {
     const name = String(req.body?.name || "").trim();
     if (!name) return res.status(400).json({ error: "Plotëso name." });
@@ -257,7 +260,8 @@ app.post("/api/departments", requireAuth("admin"), async (req, res) => {
   }
 });
 
-app.put("/api/departments/:id", requireAuth("admin"), async (req, res) => {
+// ✅ superadmin lejohet si admin
+app.put("/api/departments/:id", requireAnyRole(["admin", "superadmin"]), async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     const name = String(req.body?.name || "").trim();
@@ -280,7 +284,8 @@ app.put("/api/departments/:id", requireAuth("admin"), async (req, res) => {
   }
 });
 
-app.delete("/api/departments/:id", requireAuth("admin"), async (req, res) => {
+// ✅ superadmin lejohet si admin
+app.delete("/api/departments/:id", requireAnyRole(["admin", "superadmin"]), async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing id." });
@@ -301,8 +306,8 @@ app.delete("/api/departments/:id", requireAuth("admin"), async (req, res) => {
   }
 });
 
-// ---- USERS (admin + manager) ----
-app.post("/api/users", requireAnyRole(["admin", "manager"]), async (req, res) => {
+// ---- USERS (admin + manager + superadmin) ----
+app.post("/api/users", requireAnyRole(["admin", "manager", "superadmin"]), async (req, res) => {
   try {
     const meRole = req.user.role;
 
@@ -318,9 +323,12 @@ app.post("/api/users", requireAnyRole(["admin", "manager"]), async (req, res) =>
     let role = "user";
     let departmentId = null;
 
-    if (meRole === "admin") {
+    // ✅ superadmin trajtohet si admin (nuk i kërkon department vetes, dhe mundet me zgjedh role)
+    if (meRole === "admin" || meRole === "superadmin") {
       const roleRaw = String(req.body?.role || "user").trim();
-      role = roleRaw === "admin" || roleRaw === "manager" || roleRaw === "user" ? roleRaw : "user";
+
+      role =
+        roleRaw === "superadmin" || roleRaw === "admin" || roleRaw === "manager" || roleRaw === "user" ? roleRaw : "user";
 
       const departmentIdRaw = req.body?.departmentId;
       departmentId = departmentIdRaw === null || departmentIdRaw === undefined ? null : String(departmentIdRaw).trim();
@@ -356,19 +364,26 @@ app.post("/api/users", requireAnyRole(["admin", "manager"]), async (req, res) =>
         passwordHash,
         role,
         fullName,
-        departmentId: role === "admin" ? null : departmentId,
+        // ✅ admin/superadmin pa department
+        departmentId: role === "admin" || role === "superadmin" ? null : departmentId,
       }
     );
 
     return res.status(201).json({
-      user: { id, username, role, fullName, departmentId: role === "admin" ? null : departmentId },
+      user: {
+        id,
+        username,
+        role,
+        fullName,
+        departmentId: role === "admin" || role === "superadmin" ? null : departmentId,
+      },
     });
   } catch (e) {
     return res.status(500).json({ error: e?.message || "Server error" });
   }
 });
 
-app.get("/api/users", requireAnyRole(["admin", "manager"]), async (req, res) => {
+app.get("/api/users", requireAnyRole(["admin", "manager", "superadmin"]), async (req, res) => {
   try {
     if (req.user.role === "manager") {
       const dep = req.user.departmentId || "__none__";
@@ -421,7 +436,7 @@ app.get("/api/users", requireAnyRole(["admin", "manager"]), async (req, res) => 
   }
 });
 
-app.put("/api/users/:id", requireAnyRole(["admin", "manager"]), async (req, res) => {
+app.put("/api/users/:id", requireAnyRole(["admin", "manager", "superadmin"]), async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing id." });
@@ -438,7 +453,9 @@ app.put("/api/users/:id", requireAnyRole(["admin", "manager"]), async (req, res)
     const curRole = normRole(curRows[0].role);
     const curDep = curRows[0].department_id || null;
 
-    if (curRole === "admin") return res.status(403).json({ error: "Nuk lejohet edit i admin-it këtu." });
+    if (curRole === "admin" || curRole === "superadmin") {
+      return res.status(403).json({ error: "Nuk lejohet edit i admin/superadmin këtu." });
+    }
 
     if (req.user.role === "manager") {
       if (curRole !== "user") return res.status(403).json({ error: "Forbidden" });
@@ -540,7 +557,7 @@ app.put("/api/users/:id", requireAnyRole(["admin", "manager"]), async (req, res)
   }
 });
 
-app.delete("/api/users/:id", requireAnyRole(["admin", "manager"]), async (req, res) => {
+app.delete("/api/users/:id", requireAnyRole(["admin", "manager", "superadmin"]), async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing id." });
@@ -551,7 +568,9 @@ app.delete("/api/users/:id", requireAnyRole(["admin", "manager"]), async (req, r
 
       const r = rows[0];
       if (normRole(r.role) !== "user") return res.status(403).json({ error: "Forbidden" });
-      if ((r.department_id || null) !== (req.user.departmentId || null)) return res.status(403).json({ error: "Forbidden" });
+      if ((r.department_id || null) !== (req.user.departmentId || null)) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
 
       await pool.query(`DELETE FROM users WHERE id=:id AND role='user'`, { id });
       return res.json({ ok: true });
@@ -571,10 +590,6 @@ app.delete("/api/users/:id", requireAnyRole(["admin", "manager"]), async (req, r
 });
 
 // ---- REPORTS ----
-// NOTE: DB schema must NOT have reports.time_left anymore.
-// If you haven't yet, run:
-//   ALTER TABLE reports DROP COLUMN time_left;
-
 app.post("/api/reports", requireAnyRole(["user", "manager"]), async (req, res) => {
   try {
     const date = String(req.body?.date || "").trim(); // YYYY-MM-DD
@@ -582,12 +597,12 @@ app.post("/api/reports", requireAnyRole(["user", "manager"]), async (req, res) =
     const reasonChoice = String(req.body?.reasonChoice || "").trim();
     const reasonText = String(req.body?.reasonText || "").trim();
 
-    // keep fallback for old frontend that still sends timeLeft
     const timeOut = String(req.body?.timeOut || req.body?.timeLeft || "").trim(); // HH:MM
-    const timeReturn = String(req.body?.timeReturn || "").trim(); // HH:MM
+    const timeReturnRaw = req.body?.timeReturn;
+    const timeReturn = timeReturnRaw === null || timeReturnRaw === undefined ? "" : String(timeReturnRaw).trim(); // HH:MM
 
-    if (!reasonChoice || !date || !timeOut || !timeReturn) {
-      return res.status(400).json({ error: "Plotëso reasonChoice, date, timeOut, timeReturn." });
+    if (!reasonChoice || !date || !timeOut) {
+      return res.status(400).json({ error: "Plotëso reasonChoice, date, timeOut." });
     }
 
     const id = uuid();
@@ -609,12 +624,12 @@ app.post("/api/reports", requireAnyRole(["user", "manager"]), async (req, res) =
         id,
         userId: req.user.id,
         departmentId: req.user.departmentId || null,
-        reason: reasonChoice, // legacy field kept in DB
+        reason: reasonChoice,
         reasonChoice,
         reasonText,
         date,
         timeOut,
-        timeReturn,
+        timeReturn: timeReturn || null,
       }
     );
 
@@ -646,7 +661,8 @@ app.get("/api/reports", requireAuth(), async (req, res) => {
         LEFT JOIN departments d ON d.id = r.department_id
     `;
 
-    if (role === "admin") {
+    // ✅ superadmin sillet si admin (sheh krejt)
+    if (role === "admin" || role === "superadmin") {
       sql = `
         ${baseSelect}
         ORDER BY r.created_at DESC
@@ -679,14 +695,12 @@ app.get("/api/reports", requireAuth(), async (req, res) => {
         departmentId: r.department_id || null,
         departmentName: r.department_name || null,
 
-        // reasons
-        reason: r.reason, // legacy
+        reason: r.reason,
         reasonChoice: r.reason_choice || r.reason || null,
         reasonText: r.reason_text || null,
 
         date: r.report_date,
 
-        // times
         timeOut: r.time_out,
         timeReturn: r.time_return,
 
@@ -701,26 +715,26 @@ app.get("/api/reports", requireAuth(), async (req, res) => {
   }
 });
 
-app.patch("/api/reports/:id/review", requireAnyRole(["admin", "manager"]), async (req, res) => {
+app.patch("/api/reports/:id/review", requireAnyRole(["admin", "manager", "superadmin"]), async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing id." });
 
     if (req.user.role === "manager") {
-      const [ok] = await pool.query(
-        `SELECT 1 FROM reports WHERE id=:id AND department_id=:dep LIMIT 1`,
-        { id, dep: req.user.departmentId || "__none__" }
-      );
+      const [ok] = await pool.query(`SELECT 1 FROM reports WHERE id=:id AND department_id=:dep LIMIT 1`, {
+        id,
+        dep: req.user.departmentId || "__none__",
+      });
       if (!ok.length) return res.status(404).json({ error: "Not found" });
     } else {
       const [exists] = await pool.query(`SELECT 1 FROM reports WHERE id=:id LIMIT 1`, { id });
       if (!exists.length) return res.status(404).json({ error: "Not found" });
     }
 
-    await pool.query(
-      `UPDATE reports SET status='reviewed', reviewed_at=NOW(), reviewed_by=:adminId WHERE id=:id`,
-      { id, adminId: req.user.id }
-    );
+    await pool.query(`UPDATE reports SET status='reviewed', reviewed_at=NOW(), reviewed_by=:adminId WHERE id=:id`, {
+      id,
+      adminId: req.user.id,
+    });
 
     return res.json({ ok: true });
   } catch (e) {
@@ -728,23 +742,57 @@ app.patch("/api/reports/:id/review", requireAnyRole(["admin", "manager"]), async
   }
 });
 
-app.delete("/api/reports/:id", requireAnyRole(["admin", "manager"]), async (req, res) => {
+app.put("/api/reports/:id", requireAnyRole(["user", "manager"]), async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing id." });
 
-    if (req.user.role === "manager") {
-      const [ok] = await pool.query(
-        `SELECT 1 FROM reports WHERE id=:id AND department_id=:dep LIMIT 1`,
-        { id, dep: req.user.departmentId || "__none__" }
-      );
-      if (!ok.length) return res.status(404).json({ error: "Not found" });
-    } else {
-      const [exists] = await pool.query(`SELECT 1 FROM reports WHERE id=:id LIMIT 1`, { id });
-      if (!exists.length) return res.status(404).json({ error: "Not found" });
+    const date = String(req.body?.date || "").trim(); // YYYY-MM-DD
+    const reasonChoice = String(req.body?.reasonChoice || "").trim();
+    const reasonText = String(req.body?.reasonText || "").trim();
+
+    const timeOut = String(req.body?.timeOut || req.body?.timeLeft || "").trim(); // HH:MM
+
+    const timeReturnRaw = req.body?.timeReturn;
+    const timeReturn = timeReturnRaw === null || timeReturnRaw === undefined ? "" : String(timeReturnRaw).trim();
+
+    if (!reasonChoice || !date || !timeOut) {
+      return res.status(400).json({ error: "Plotëso reasonChoice, date, timeOut." });
     }
 
-    await pool.query(`DELETE FROM reports WHERE id=:id`, { id });
+    const [own] = await pool.query(`SELECT status FROM reports WHERE id=:id AND user_id=:userId LIMIT 1`, {
+      id,
+      userId: req.user.id,
+    });
+    if (!own.length) return res.status(404).json({ error: "Not found" });
+
+    if (String(own[0].status) !== "submitted") {
+      return res.status(403).json({ error: "Nuk mund të ndryshohet pasi është shqyrtuar." });
+    }
+
+    await pool.query(
+      `
+      UPDATE reports
+      SET reason=:reason,
+          reason_choice=:reasonChoice,
+          reason_text=:reasonText,
+          report_date=:date,
+          time_out=:timeOut,
+          time_return=:timeReturn
+      WHERE id=:id AND user_id=:userId AND status='submitted'
+      `,
+      {
+        id,
+        userId: req.user.id,
+        reason: reasonChoice,
+        reasonChoice,
+        reasonText,
+        date,
+        timeOut,
+        timeReturn: timeReturn || null,
+      }
+    );
+
     return res.json({ ok: true });
   } catch (e) {
     return res.status(500).json({ error: e?.message || "Server error" });

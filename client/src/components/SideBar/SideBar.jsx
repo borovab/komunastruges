@@ -139,6 +139,86 @@ export default function Sidebar({ className = "" }) {
             ),
           },
         ]
+      : role === "superadmin"
+      ? [
+          {
+            label: "Panel",
+            path: "/superadmin",
+            icon: (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path
+                  d="M4 13h7V4H4v9Zm9 7h7V11h-7v9ZM4 20h7v-5H4v5Zm9-18v7h7V2h-7Z"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+              </svg>
+            ),
+          },
+          {
+            label: "Raportimet",
+            path: "/superadmin/raportimet",
+            icon: (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path d="M7 3h10v18H7V3Z" stroke="currentColor" strokeWidth="1.6" />
+                <path
+                  d="M9 7h6M9 11h6M9 15h6"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ),
+          },
+
+          {
+            label: "Departamentet",
+            path: "/superadmin/departments",
+            icon: (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path
+                  d="M4 8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V8Z"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+                <path
+                  d="M8 9h8M8 12h8M8 15h5"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ),
+          },
+
+          {
+            label: "Punëtorët",
+            path: "/superadmin/workers",
+            icon: (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path
+                  d="M16 11a4 4 0 1 0-8 0m13 10a7 7 0 1 0-14 0"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ),
+          },
+          {
+            label: "Shto përdorues",
+            path: "/superadmin/add-user",
+            icon: (
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ),
+          },
+        ]
       : role === "manager"
       ? [
           {
@@ -183,7 +263,7 @@ export default function Sidebar({ className = "" }) {
               </svg>
             ),
           },
-            {
+          {
             label: "Shto Punëtorë",
             path: "/manager/add-user",
             icon: (
@@ -221,7 +301,14 @@ export default function Sidebar({ className = "" }) {
   const bottomLinks = [
     {
       label: "Profili im",
-      path: role === "admin" ? "/admin/profile" : role === "manager" ? "/manager/profile" : "/user/profile",
+      path:
+        role === "superadmin"
+          ? "/superadmin/profile"
+          : role === "admin"
+          ? "/admin/profile"
+          : role === "manager"
+          ? "/manager/profile"
+          : "/user/profile",
       icon: (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
           <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="1.6" />

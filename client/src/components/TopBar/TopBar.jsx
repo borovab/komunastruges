@@ -34,6 +34,14 @@ export default function Topbar() {
           { label: "Punëtorët", path: "/admin/workers" },
           { label: "Shto përdorues", path: "/admin/add-user" },
         ]
+      : role === "superadmin"
+      ? [
+          { label: "Panel", path: "/superadmin" },
+          { label: "Raportimet", path: "/superadmin/raportimet" },
+          { label: "Departamentet", path: "/superadmin/departments" },
+          { label: "Punëtorët", path: "/superadmin/workers" },
+          { label: "Shto përdorues", path: "/superadmin/add-user" },
+        ]
       : role === "manager"
       ? [
           { label: "Paneli", path: "/manager" },
@@ -46,11 +54,18 @@ export default function Topbar() {
       : [];
 
   const profilePath =
-    role === "admin" ? "/admin/profile" : role === "manager" ? "/manager/profile" : "/user/profile";
+    role === "superadmin"
+      ? "/superadmin/profile"
+      : role === "admin"
+      ? "/admin/profile"
+      : role === "manager"
+      ? "/manager/profile"
+      : "/user/profile";
 
   const isActive = (path) => location.pathname === path;
 
   const goHome = () => {
+    if (role === "superadmin") return navigate("/superadmin");
     if (role === "admin") return navigate("/admin");
     if (role === "manager") return navigate("/manager");
     if (role === "user") return navigate("/user");

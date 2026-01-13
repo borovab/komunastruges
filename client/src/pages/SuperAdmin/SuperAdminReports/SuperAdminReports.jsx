@@ -1,4 +1,6 @@
+// src/pages/Admin/AdminReports/AdminReports.jsx
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../../lib/api";
 
 function cn(...a) {
@@ -7,6 +9,7 @@ function cn(...a) {
 
 function statusLabel(s) {
   const v = String(s || "").trim().toLowerCase();
+  // backend: submitted/reviewed — UI: pending/reviewed
   if (v === "submitted") return "pending";
   return v || "—";
 }
@@ -18,48 +21,29 @@ function formatReason(r) {
   return choice || "—";
 }
 
-function todayYMD() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
+export default function SuperAdminReports() {
+  const navigate = useNavigate();
 
-const REASONS = ["Detyrë zyrtare", "Dalje në terren", "Pushim personal", "Arsye shëndetësore", "Tjetër"];
-
-export default function ManagerReports() {
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState("");
   const [okMsg, setOkMsg] = React.useState("");
   const [reports, setReports] = React.useState([]);
 
-  const [open, setOpen] = React.useState(null);
+  // departments filter
+  const [departments, setDepartments] = React.useState([]);
+  const [depId, setDepId] = React.useState("all"); // "all" | departmentId
+
+  const [open, setOpen] = React.useState(null); // report object
   const [acting, setActing] = React.useState(false);
-
-  // ✅ manager can create report
-  const [createOpen, setCreateOpen] = React.useState(false);
-  const [cDate, setCDate] = React.useState(todayYMD());
-  const [cTimeOut, setCTimeOut] = React.useState("");
-  const [cTimeReturn, setCTimeReturn] = React.useState("");
-  const [cReasonChoice, setCReasonChoice] = React.useState("");
-  const [cReasonText, setCReasonText] = React.useState("");
-
-  const resetCreate = () => {
-    setCDate(todayYMD());
-    setCTimeOut("");
-    setCTimeReturn("");
-    setCReasonChoice("");
-    setCReasonText("");
-  };
 
   const load = async () => {
     setLoading(true);
     setErr("");
     setOkMsg("");
     try {
-      const res = await api.listReports(); // backend e filtron per departamentin e manager-it
+      const [res, deps] = await Promise.all([api.listReports(), api.listDepartments()]);
       setReports(res?.reports || []);
+      setDepartments(deps?.departments || []);
     } catch (e) {
       setErr(e?.message || "Gabim");
     } finally {
@@ -82,9 +66,21 @@ export default function ManagerReports() {
     setActing(false);
   };
 
-  const closeCreate = () => {
-    setCreateOpen(false);
-    setActing(false);
+  const deleteReport = async (id) => {
+    if (!window.confirm("A je i sigurt që do ta fshish këtë raportim?")) return;
+
+    setErr("");
+    setOkMsg("");
+    setActing(true);
+    try {
+      await api.deleteReport(id);
+      setOkMsg("Raportimi u fshi.");
+      closeDetails();
+      await load();
+    } catch (e) {
+      setErr(e?.message || "Gabim");
+      setActing(false);
+    }
   };
 
   const markReviewed = async (id) => {
@@ -102,68 +98,49 @@ export default function ManagerReports() {
     }
   };
 
-  const createReport = async (e) => {
-    e.preventDefault();
-    setErr("");
-    setOkMsg("");
+  const filteredReports =
+    depId === "all"
+      ? reports
+      : reports.filter((r) => String(r.departmentId || "").trim() === String(depId).trim());
 
-    if (!cReasonChoice) return setErr("Zgjidh arsyen.");
-    if (!cDate) return setErr("Zgjidh datën.");
-    if (!cTimeOut) return setErr("Zgjidh orën e daljes.");
-
-    setActing(true);
-    try {
-      await api.createReport({
-        reasonChoice: cReasonChoice,
-        reasonText: cReasonText,
-        date: cDate,
-        timeOut: cTimeOut,
-        ...(cTimeReturn ? { timeReturn: cTimeReturn } : {}), // ✅ ora e kthimit opsionale
-      });
-
-      setOkMsg("Raporti u dërgua me sukses.");
-      resetCreate();
-      closeCreate();
-      await load();
-    } catch (e2) {
-      setErr(e2?.message || "Gabim");
-      setActing(false);
-    }
-  };
+  const depNameById = React.useMemo(() => {
+    const m = new Map();
+    for (const d of departments) m.set(String(d.id), d.name);
+    return m;
+  }, [departments]);
 
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">Manager • Raportimet</h2>
-          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">
-            Shfaq raportimet e punëtorëve të departamentit tënd.
-          </p>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">Admin • Raportimet</h2>
+          <p className="text-[12px] sm:text-sm text-slate-500 mt-1">Shfaq të gjitha raportimet (Excel list).</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+        <div className="grid grid-cols-1 sm:flex sm:items-center gap-2">
           <button
             type="button"
-            onClick={() => {
-              setErr("");
-              setOkMsg("");
-              setCreateOpen(true);
-            }}
-            className="h-10 w-full sm:w-auto px-4 rounded-xl sm:rounded-2xl bg-blue-600 text-white hover:bg-blue-700 transition text-[13px] font-semibold"
+            onClick={load}
+            className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
           >
-            Shto raport
+            Rifresko
           </button>
 
           <button
             type="button"
-            onClick={load}
-            className="h-10 w-full sm:w-auto px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] font-semibold"
+            className="h-9 sm:h-10 w-full sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-blue-600 text-white hover:bg-blue-700 transition text-[13px] font-semibold"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/admin", { replace: true });
+            }}
           >
-            Rifresko
+            Paneli
           </button>
         </div>
       </div>
 
+      {/* Alerts */}
       {err ? (
         <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-[13px] text-red-700">
           {err}
@@ -176,6 +153,30 @@ export default function ManagerReports() {
         </div>
       ) : null}
 
+      {/* Filter row */}
+      <div className="mb-3 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+        <div className="text-[12px] sm:text-sm text-slate-600">
+          {depId === "all" ? "Të gjitha departamentet" : `Departamenti: ${depNameById.get(String(depId)) || "—"}`}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-[11px] font-semibold text-slate-600">Filtro:</label>
+          <select
+            value={depId}
+            onChange={(e) => setDepId(e.target.value)}
+            className="h-9 sm:h-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+          >
+            <option value="all">Të gjitha</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* List card */}
       <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="px-3 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -184,17 +185,20 @@ export default function ManagerReports() {
             </span>
             <div className="leading-tight min-w-0">
               <div className="text-[13px] sm:text-sm font-semibold text-slate-900">Lista e raportimeve</div>
-              <div className="text-[11px] sm:text-[12px] text-slate-500">{reports.length} raportime</div>
+              <div className="text-[11px] sm:text-[12px] text-slate-500">
+                {filteredReports.length} raportime{depId === "all" ? "" : " (filtruar)"}
+              </div>
             </div>
           </div>
 
           {loading ? <div className="text-[12px] sm:text-sm text-slate-500">Loading…</div> : null}
         </div>
 
-        {!loading && reports.length === 0 ? (
+        {!loading && filteredReports.length === 0 ? (
           <div className="p-5 sm:p-6 text-[13px] sm:text-sm text-slate-500">S’ka raportime.</div>
         ) : null}
 
+        {/* EXCEL LIST (vetëm kjo) */}
         <div className="overflow-auto">
           <table className="w-full text-[13px] sm:text-sm">
             <thead className="bg-slate-50">
@@ -213,7 +217,7 @@ export default function ManagerReports() {
             </thead>
 
             <tbody className="divide-y divide-slate-200">
-              {reports.map((r, idx) => (
+              {filteredReports.map((r, idx) => (
                 <tr
                   key={r.id}
                   onClick={() => openDetails(r)}
@@ -230,7 +234,7 @@ export default function ManagerReports() {
                   </td>
                   <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">{statusLabel(r.status)}</td>
                   <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-700">
-                    {r.departmentName || r.department || "—"}
+                    {r.departmentName || depNameById.get(String(r.departmentId)) || "—"}
                   </td>
                   <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-slate-500">
                     {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
@@ -266,151 +270,16 @@ export default function ManagerReports() {
         </div>
       </div>
 
-      {/* ✅ Create Report Modal (mobile bottom-sheet + dvh + flex body scroll) */}
-      {createOpen ? (
-        <div className="fixed inset-0 z-[999]">
-          <div className="absolute inset-0 bg-black/40" onClick={closeCreate} />
-          <div
-            className="absolute inset-0 flex items-end sm:items-center justify-center p-0 sm:p-3"
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-          >
-            <form
-              onSubmit={createReport}
-              className="w-full sm:max-w-3xl rounded-t-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-xl overflow-hidden flex flex-col max-h-[85dvh] sm:max-h-none"
-            >
-              <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">Shto raport (Manager)</div>
-                  <div className="text-[11px] sm:text-[12px] text-slate-500 truncate">
-                    Plotëso fushat dhe dërgo raportin.
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={closeCreate}
-                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition grid place-items-center"
-                  aria-label="Mbyll"
-                >
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-                    <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="p-4 sm:p-5 space-y-3 sm:space-y-4 overflow-auto flex-1">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                  <div>
-                    <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Data</label>
-                    <input
-                      type="date"
-                      value={cDate}
-                      onChange={(e) => setCDate(e.target.value)}
-                      className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Ora e daljes</label>
-                    <input
-                      type="time"
-                      value={cTimeOut}
-                      onChange={(e) => setCTimeOut(e.target.value)}
-                      className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
-                      Ora e kthimit (opsionale)
-                    </label>
-                    <input
-                      type="time"
-                      value={cTimeReturn}
-                      onChange={(e) => setCTimeReturn(e.target.value)}
-                      className="w-full h-10 sm:h-11 rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">Arsyeja e daljes</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {REASONS.map((r) => (
-                      <label
-                        key={r}
-                        className={cn(
-                          "flex items-center gap-3 rounded-xl sm:rounded-2xl border px-3 py-2 text-[13px] sm:text-sm cursor-pointer transition",
-                          cReasonChoice === r
-                            ? "border-blue-300 bg-blue-50"
-                            : "border-slate-200 bg-white hover:bg-slate-50"
-                        )}
-                      >
-                        <input
-                          type="radio"
-                          name="reasonChoiceManager"
-                          checked={cReasonChoice === r}
-                          onChange={() => setCReasonChoice(r)}
-                          className="h-4 w-4"
-                        />
-                        <span className="text-slate-700">{r}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] sm:text-xs font-medium text-slate-700 mb-2">
-                    Shënim (opsionale)
-                  </label>
-                  <textarea
-                    value={cReasonText}
-                    onChange={(e) => setCReasonText(e.target.value)}
-                    className="w-full min-h-[110px] rounded-xl sm:rounded-2xl border border-slate-200 bg-white px-3 py-2 text-[13px] sm:text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-                    placeholder="Shkruaj shënim..."
-                  />
-                </div>
-              </div>
-
-              <div className="px-4 sm:px-5 py-3 sm:py-4 border-t border-slate-200 bg-white flex flex-col sm:flex-row gap-2 sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeCreate}
-                  className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
-                  disabled={acting}
-                >
-                  Mbyll
-                </button>
-
-                <button
-                  type="submit"
-                  className={cn(
-                    "h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl text-white transition text-[13px] sm:text-sm font-semibold",
-                    acting ? "bg-blue-600/70 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-                  )}
-                  disabled={acting}
-                >
-                  {acting ? "Duke dërguar…" : "Dërgo raportin"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
-
       {/* Details Modal */}
       {open ? (
         <div className="fixed inset-0 z-[999]">
           <div className="absolute inset-0 bg-black/40" onClick={closeDetails} />
-          <div
-            className="absolute inset-0 flex items-end sm:items-center justify-center p-0 sm:p-3"
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-          >
-            <div className="w-full sm:max-w-3xl rounded-t-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-xl overflow-hidden max-h-[85dvh] sm:max-h-none flex flex-col">
+          <div className="absolute inset-0 flex items-end sm:items-center justify-center p-3">
+            <div className="w-full max-w-3xl rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-xl overflow-hidden">
               <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-[13px] sm:text-sm font-semibold text-slate-900 truncate">
-                    {open.fullName || "—"} • {open.departmentName || open.department || "—"}
+                    {open.fullName || "—"} • {open.departmentName || depNameById.get(String(open.departmentId)) || "—"}
                   </div>
                   <div className="text-[11px] sm:text-[12px] text-slate-500 truncate">
                     {open.createdAt ? new Date(open.createdAt).toLocaleString() : "—"} • Status:{" "}
@@ -430,7 +299,7 @@ export default function ManagerReports() {
                 </button>
               </div>
 
-              <div className="p-4 sm:p-5 space-y-3 sm:space-y-4 overflow-auto flex-1">
+              <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
                     <div className="text-[10px] sm:text-[11px] text-slate-500">Punëtori</div>
@@ -440,7 +309,7 @@ export default function ManagerReports() {
                   <div className="rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
                     <div className="text-[10px] sm:text-[11px] text-slate-500">Departamenti</div>
                     <div className="text-[13px] sm:text-sm font-semibold text-slate-900 mt-1">
-                      {open.departmentName || open.department || "—"}
+                      {open.departmentName || depNameById.get(String(open.departmentId)) || "—"}
                     </div>
                   </div>
 
@@ -488,6 +357,20 @@ export default function ManagerReports() {
                     {acting ? "..." : "Verifikoje"}
                   </button>
                 ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => deleteReport(open.id)}
+                  className={cn(
+                    "h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border transition text-[13px] sm:text-sm font-semibold",
+                    acting
+                      ? "border-red-200 bg-red-50 text-red-700/70 cursor-not-allowed"
+                      : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                  )}
+                  disabled={acting}
+                >
+                  Fshi
+                </button>
               </div>
             </div>
           </div>
