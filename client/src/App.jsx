@@ -40,6 +40,8 @@ import AdminReports from "./pages/Admin/AdminReports/AdminReports.jsx";
 // ✅ ADMIN DEPARTMENTS
 import AdminDepartments from "./pages/Admin/AdminDepartments/AdminDepartments.jsx";
 
+import logo from "./assets/logo.png";
+
 function RootRedirect() {
   const session = getSession();
   const role = String(session?.user?.role || "").trim().toLowerCase();
@@ -62,8 +64,9 @@ function FullScreenLangLoader() {
   if (!isChangingLang) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[999999] bg-black/35 backdrop-blur-[2px] grid place-items-center">
+    <div className="fixed inset-0 z-[999999] bg-black/65 backdrop-blur-[2px] grid place-items-center">
       <div className="flex flex-col items-center gap-3">
+        <img src={logo} alt="Loading" className="h-13 w-12" />
         <div className="h-12 w-12 rounded-full border-4 border-white/60 border-t-white animate-spin" />
         <div className="text-white text-sm font-semibold">{t("common.loading") || "Loading..."}</div>
       </div>
