@@ -25,6 +25,7 @@ import {
   ManagerAddUser,
   ManagerReports,
   ManagerProfile,
+  SuperAdminDepartmentsWorkers,
 } from "./pages";
 
 import PublicLayout from "./layouts/PublicLayout";
@@ -130,6 +131,8 @@ export default function App() {
           <Route path="add-user" element={<SuperAdminAddUser />} />
           <Route path="raportimet" element={<SuperAdminReports />} />
           <Route path="departments" element={<SuperAdminDepartments />} />
+          <Route path="/superadmin/departments" element={<SuperAdminDepartments />} />
+          <Route path="/superadmin/departments/:depId" element={<SuperAdminDepartmentsWorkers />} />
         </Route>
 
         {/* ADMIN */}

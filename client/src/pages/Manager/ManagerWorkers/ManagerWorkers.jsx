@@ -35,9 +35,6 @@ export default function ManagerWorkers() {
   const [ePassword, setEPassword] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
-  // delete confirm
-  const [deleting, setDeleting] = React.useState(null);
-  const [deletingNow, setDeletingNow] = React.useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -111,30 +108,7 @@ export default function ManagerWorkers() {
     }
   };
 
-  const openDelete = (u) => {
-    setErr("");
-    setOkMsg("");
-    setDeleting(u);
-  };
-
-  const closeDelete = () => setDeleting(null);
-
-  const confirmDelete = async () => {
-    if (!deleting?.id) return;
-    setErr("");
-    setOkMsg("");
-    setDeletingNow(true);
-    try {
-      await api.deleteUser(deleting.id);
-      setOkMsg(tr("managerWorkers.ok.deleted", "Punëtori u fshi."));
-      closeDelete();
-      await load();
-    } catch (e) {
-      setErr(e?.message || tr("common.errors.generic", "Gabim"));
-    } finally {
-      setDeletingNow(false);
-    }
-  };
+ 
 
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
@@ -248,23 +222,7 @@ export default function ManagerWorkers() {
                   {tr("managerWorkers.labels.myDepartment", "Departamenti yt")}
                 </span>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => openEdit(u)}
-                    className="h-9 w-1/2 sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
-                  >
-                    {tr("managerWorkers.actions.edit", "Edit")}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => openDelete(u)}
-                    className="h-9 w-1/2 sm:w-auto px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition text-[13px] sm:text-sm font-semibold"
-                  >
-                    {tr("managerWorkers.actions.delete", "Fshi")}
-                  </button>
-                </div>
+             
               </div>
             </div>
           ))}
@@ -367,69 +325,7 @@ export default function ManagerWorkers() {
         </div>
       ) : null}
 
-      {/* DELETE MODAL */}
-      {deleting ? (
-        <div className="fixed inset-0 z-[9999]">
-          <div className="absolute inset-0 bg-black/40" onClick={closeDelete} />
-          <div
-            className="absolute inset-0 flex items-end sm:items-center justify-center p-0 sm:p-3"
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-          >
-            <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-xl overflow-hidden flex flex-col max-h-[70dvh] sm:max-h-none">
-              <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
-                <div className="text-[13px] sm:text-sm font-semibold text-slate-900">
-                  {tr("managerWorkers.deleteModal.title", "Fshi punëtorin")}
-                </div>
-                <button
-                  type="button"
-                  onClick={closeDelete}
-                  className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
-                >
-                  {tr("managerWorkers.actions.close", "Mbyll")}
-                </button>
-              </div>
-
-              <div className="p-4 sm:p-5 overflow-auto flex-1">
-                <div className="text-[13px] sm:text-sm text-slate-700">
-                  {tr("managerWorkers.deleteModal.question", "A je i sigurt që do ta fshish {name}?", {
-                    name: deleting.fullName || tr("managerWorkers.deleteModal.workerFallback", "punëtorin"),
-                  })}
-                </div>
-                <div className="text-[11px] sm:text-[12px] text-slate-500 mt-1">
-                  {tr("managerWorkers.deleteModal.warning", "Ky veprim nuk kthehet mbrapsht.")}
-                </div>
-
-                <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-end">
-                  <button
-                    type="button"
-                    onClick={closeDelete}
-                    className="h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition text-[13px] sm:text-sm font-semibold"
-                    disabled={deletingNow}
-                  >
-                    {tr("managerWorkers.actions.cancel", "Anulo")}
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={deletingNow}
-                    onClick={confirmDelete}
-                    className={cn(
-                      "h-10 sm:h-11 px-4 sm:px-5 rounded-xl sm:rounded-2xl border transition text-[13px] sm:text-sm font-semibold",
-                      deletingNow
-                        ? "border-red-200 bg-red-200 text-red-800 cursor-not-allowed"
-                        : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                    )}
-                  >
-                    {deletingNow
-                      ? tr("managerWorkers.actions.deleting", "Duke fshirë…")
-                      : tr("managerWorkers.actions.confirmDelete", "Po, fshi")}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+    
     </div>
   );
 }

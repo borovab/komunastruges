@@ -1039,15 +1039,15 @@ export const DICT = {
       },
     },
     // DICT.mk
-login: {
-  logoAlt: "Komuna",
-  title: "Login",
-  subtitle: "Kyçu për të vazhduar.",
-  fields: { username: "Username", password: "Password" },
-  placeholders: { username: "Username...", password: "Password..." },
-  actions: { submit: "Hyr", loggingIn: "Duke u kyçur..." },
-  footer: "Komuna e Strugës",
-},
+    login: {
+      logoAlt: "Komuna",
+      title: "Login",
+      subtitle: "Kyçu për të vazhduar.",
+      fields: { username: "Username", password: "Password" },
+      placeholders: { username: "Username...", password: "Password..." },
+      actions: { submit: "Hyr", loggingIn: "Duke u kyçur..." },
+      footer: "Komuna e Strugës",
+    },
 
   },
 
@@ -1094,6 +1094,129 @@ login: {
         createFail: "Грешка при креирање корисник.",
       },
     },
+    superAdminReports: {
+  header: {
+    title: "Админ • Извештаи",
+    subtitle: "Прикажи ги сите извештаи (Excel листа).",
+  },
+  actions: {
+    refresh: "Освежи",
+    panel: "Панел",
+    verify: "Потврди",
+    close: "Затвори",
+    delete: "Избриши",
+  },
+  labels: {
+    verified: "Потврдено",
+  },
+  loading: "Се вчитува…",
+  empty: "Нема извештаи.",
+  filter: {
+    label: "Филтер:",
+    all: "Сите",
+    allDepartments: "Сите одделенија",
+    department: "Одделение",
+  },
+  table: {
+    title: "Листа на извештаи",
+    count: "извештаи",
+    filtered: "филтрирано",
+    clickForDetails: "Кликни за детали",
+  },
+  columns: {
+    no: "#",
+    worker: "Работник",
+    date: "Датум",
+    timeOut: "Време излез",
+    timeReturn: "Време враќање",
+    reason: "Причина",
+    status: "Статус",
+    department: "Одделение",
+    created: "Креирано",
+    actions: "Акции",
+  },
+  modal: {
+    status: "Статус",
+    worker: "Работник",
+    department: "Одделение",
+    date: "Датум",
+    time: "Време",
+    reason: "Причина",
+  },
+  confirm: {
+    delete: "Дали си сигурен дека сакаш да го избришеш овој извештај?",
+  },
+  ok: {
+    reviewed: "Извештајот е потврден.",
+    deleted: "Извештајот е избришан.",
+  },
+  errors: {
+    generic: "Грешка",
+  },
+},
+
+superAdminDashboard: {
+  headerTitle: "СуперАдмин • Панел",
+  headerSubtitle: "Статистика + сите извештаи + корисници.",
+  actions: {
+    refresh: "Освежи",
+    export: "Експорт (Excel)",
+    exportTitle: "Експорт на извештаи",
+    exportTitleEmpty: "Нема извештаи за експорт",
+  },
+  ok: {
+    workerAdded: "Работникот е успешно додаден.",
+    reportReviewed: "Извештајот е означен како потврден.",
+  },
+  errors: {
+    generic: "Грешка",
+  },
+  stats: {
+    totalReports: "Вкупно извештаи",
+    today: "Денес: {n}",
+    pending: "На чекање",
+    pendingSub: "Извештаи без проверка",
+    reviewed: "Потврдени",
+    reviewedSub: "Потврдени извештаи",
+    workers: "Работници",
+    workersSub: "Админ: {admins} • Вкупно: {total}",
+  },
+  chart: {
+    title: "Извештаи (последни 7 дена)",
+    maxPerDay: "Макс/ден: {n}",
+  },
+  reports: {
+    title: "Сите извештаи",
+    empty: "Нема извештаи.",
+    badges: {
+      reviewed: "потврдено",
+      pending: "на чекање",
+    },
+    actions: {
+      verify: "Потврди",
+    },
+    reviewedAt: "Потврдено:",
+  },
+  users: {
+    title: "Сите корисници",
+    total: "Вкупно: {n}",
+    empty: "Нема корисници.",
+    created: "Креирано:",
+  },
+  export: {
+    headers: {
+      fullName: "Име",
+      status: "Статус",
+      date: "Датум",
+      timeOut: "Време на излегување",
+      timeReturn: "Време на враќање",
+      department: "Дирекција/Сектор",
+      reason: "Причина",
+      createdAt: "Креирано",
+      reviewedAt: "Потврдено",
+    },
+  },
+},
 
     adminDashboard: {
       headerTitle: "Админ • Панел",
@@ -1287,6 +1410,173 @@ login: {
         noDepartment: "без одделение",
       },
     },
+superAdminWorkers: {
+  header: {
+    title: "Админ • Работници",
+    subtitle: "Управувај со работници (промени податоци / избриши).",
+  },
+  actions: {
+    refresh: "Освежи",
+    panel: "Панел",
+    edit: "Уреди",
+    delete: "Избриши",
+    close: "Затвори",
+    cancel: "Откажи",
+    save: "Зачувај промени",
+    saving: "Се зачувува...",
+  },
+  loading: "Се вчитува…",
+  empty: "Нема корисници.",
+  filter: {
+    label: "Филтер:",
+    all: "Сите",
+    allDepartments: "Сите одделенија",
+    department: "Одделение",
+  },
+  list: {
+    title: "Листа на корисници",
+    count: "корисници",
+    filtered: "филтрирано",
+  },
+  labels: {
+    created: "Креирано",
+    noDepartment: "без одделение",
+  },
+  modal: {
+    title: "Промени корисник",
+  },
+  fields: {
+    fullName: "Име и презиме",
+    username: "Корисничко име",
+    passwordOptional: "Лозинка (остави празно за да не се менува)",
+  },
+  placeholders: {
+    fullName: "пр. Арбен X",
+    username: "пр. arben",
+  },
+  hints: {
+    passwordOptional: "Ако го оставиш празно, лозинката нема да се промени.",
+  },
+  confirm: {
+    delete: "Дали си сигурен дека сакаш да го избришеш овој работник?",
+  },
+  ok: {
+    updated: "Работникот е ажуриран.",
+    deleted: "Работникот е избришан.",
+  },
+  errors: {
+    generic: "Грешка",
+    fullNameRequired: "Внеси име и презиме.",
+    usernameRequired: "Внеси корисничко име.",
+    passwordShort: "Лозинката е премногу кратка (мин 6).",
+  },
+},
+superAdminAddUser: {
+  headerTitle: "Додај корисник",
+  headerSubtitle: "Креирај нова сметка за superadmin, admin, manager или user.",
+  actions: {
+    back: "Назад",
+    cancel: "Откажи",
+    create: "Креирај корисник",
+    creating: "Се креира...",
+    refreshDepartments: "Освежи одделенија",
+  },
+  cardTitle: "Додај корисник",
+  cardSubtitle: "Форма за креирање",
+  form: {
+    fullName: "Име и презиме",
+    username: "Корисничко име",
+    role: "Улога",
+    department: "Одделение",
+    password: "Лозинка",
+    confirmPassword: "Потврди лозинка",
+  },
+  placeholders: {
+    fullName: "пр. John Doe",
+    username: "пр. johndoe",
+    password: "Минимум 6 знаци",
+    confirmPassword: "Внеси повторно",
+  },
+  hints: {
+    username: "Без празни места. Минимум 3 знаци.",
+    role: "User/Manager се поврзани со одделение. Admin/SuperAdmin не.",
+    departments: "Ако нема одделенија, креирај ги на /superadmin/departments.",
+  },
+  roles: {
+    user: "User",
+    manager: "Manager",
+    admin: "Admin",
+    superadmin: "SuperAdmin",
+  },
+  deps: {
+    loading: "Се вчитува…",
+    empty: "Нема одделенија (креирај на /superadmin/departments)",
+  },
+  ok: {
+    created: "Корисникот е успешно креиран.",
+  },
+  errors: {
+    loadDepartmentsFailed: "Не успеавме да ги вчитаме одделенијата.",
+    createFailed: "Грешка при креирање корисник.",
+    fullNameRequired: "Внеси име и презиме.",
+    usernameRequired: "Внеси корисничко име.",
+    usernameMin3: "Корисничкото име мора да има најмалку 3 знаци.",
+    roleInvalid: "Улогата не е валидна.",
+    pickDepartment: "Избери одделение.",
+    passwordRequired: "Внеси лозинка.",
+    passwordMin6: "Лозинката мора да има најмалку 6 знаци.",
+    passwordMismatch: "Лозинките не се совпаѓаат.",
+  },
+},
+superAdminProfile: {
+  headerTitle: "Профил (СуперАдмин)",
+  headerSubtitle: "Ажурирај ги податоците и безбедноста на сметката.",
+  meta: {
+    id: "ID",
+    created: "Креирано",
+  },
+  sections: {
+    profile: {
+      title: "Податоци",
+      subtitle: "Промени име и корисничко име.",
+    },
+    security: {
+      title: "Безбедност",
+      subtitle: "Промени лозинка.",
+    },
+  },
+  form: {
+    fullName: "Име и презиме",
+    username: "Корисничко име",
+    currentPassword: "Тековна лозинка",
+    newPassword: "Нова лозинка",
+    repeatPassword: "Повтори лозинка",
+  },
+  placeholders: {
+    fullName: "пр. Beqir Borova",
+    username: "пр. u_superadmin",
+  },
+  actions: {
+    saving: "Се зачувува...",
+    saveChanges: "Зачувај промени",
+    changing: "Се менува...",
+    changePassword: "Промени лозинка",
+  },
+  ok: {
+    profileUpdated: "Профилот е ажуриран.",
+    passwordUpdated: "Лозинката е успешно променета.",
+  },
+  errors: {
+    generic: "Грешка",
+    noUser: "Не е пронајден корисник во сесијата.",
+    fullNameRequired: "Внеси име и презиме.",
+    usernameRequired: "Внеси корисничко име.",
+    currentPasswordRequired: "Внеси ја тековната лозинка.",
+    newPasswordRequired: "Внеси нова лозинка.",
+    newPasswordTooShort: "Новата лозинка мора да има најмалку 6 знаци.",
+    passwordsNotMatch: "Новата лозинка не се совпаѓа.",
+  },
+},
 
     managerAddUser: {
       headerTitle: "Менаџер • Додај работник",
@@ -1313,7 +1603,43 @@ login: {
         passwordTooShort: "Лозинката е премногу кратка (мин 6).",
       },
     },
-
+ superAdminDepartments: {
+    headerTitle: "Оддели",
+    headerSubtitle: "Додај, ажурирај и избриши оддели.",
+    confirmDelete: "Дали сте сигурни дека сакате да го избришете овој оддел?",
+    ok: {
+      created: "Одделот е додаден.",
+      updated: "Одделот е ажуриран.",
+      deleted: "Одделот е избришан.",
+    },
+    errors: {
+      generic: "Грешка",
+      nameRequired: "Внесете го името на одделот.",
+      nameEmpty: "Името на одделот не смее да биде празно.",
+    },
+    create: {
+      title: "Додај оддел",
+      subtitle: "Името мора да биде уникатно.",
+      nameLabel: "Име",
+      namePlaceholder: "пр. Администрација",
+      add: "Додај",
+    },
+    list: {
+      title: "Листа",
+      totalPrefix: "Вкупно:",
+      empty: "Нема оддели.",
+    },
+    edit: {
+      nameLabel: "Име",
+    },
+    actions: {
+      refresh: "Освежи",
+      edit: "Уреди",
+      delete: "Избриши",
+      save: "Зачувај",
+      cancel: "Откажи",
+    },
+  },
     managerDashboard: {
       headerTitle: "Менаџер • Панел",
       headerSubtitle: "Статистика + извештаи на одделот.",
@@ -1610,16 +1936,106 @@ login: {
         },
       },
     },
+    userDashboard: {
+      reasons: ["Службена должност", "Излегување на терен", "Лично отсуство", "Здравствени причини", "Друго"],
+      actions: {
+        back: "Назад",
+        refresh: "Освежи",
+        submit: "ПОДНЕСИ",
+        submitting: "Се испраќа…",
+      },
+      ok: {
+        submitted: "Извештајот е успешно испратен.",
+      },
+      errors: {
+        generic: "Грешка",
+        chooseReason: "Изберете причина.",
+        chooseDate: "Изберете датум.",
+        chooseTimeOut: "Изберете време на излегување.",
+      },
+      home: {
+        primary: { title: "Регистрирај излегување", sub: "Регистрирај излегување со 1 клик" },
+        secondary: { title: "Мои излегувања", sub: "Евиденција на излегувања" },
+      },
+      mobile: {
+        top: {
+          homeTitle: "Излегувања од објектот",
+          formTitle: "Регистрирај излегување",
+          listTitle: "Мои излегувања",
+          subtitle: "Општина Струга",
+        },
+      },
+      form: {
+        title: "Регистрирај излегување",
+        fields: {
+          fullName: "Име и Презиме",
+          workId: "Работен ID",
+          department: "Дирекција / Сектор",
+          reason: "Причина за излегување",
+          date: "Датум",
+          timeOut: "Време на излегување",
+          timeReturn: "Време на враќање (опционално)",
+          note: "Забелешка (опционално)",
+          raport: "Извештај (опционално)",
+        },
+        placeholders: {
+          note: "Напиши забелешка...",
+          raport: "Напиши извештај...",
+        },
+      },
+      list: {
+        title: "Евиденција на излегувања",
+        count: "излегувања",
+        empty: "Сè уште нема излегувања.",
+        cols: {
+          date: "Датум",
+          name: "Име",
+          department: "Дирекција",
+          details: "Детали",
+        },
+        labels: {
+          timeOut: "Излегување",
+          timeReturn: "Враќање",
+        },
+      },
+      desktop: {
+        header: {
+          title: "Пријави порано излегување",
+          subtitle: "Пополнете го извештајот и прегледајте ги вашите извештаи.",
+        },
+        form: {
+          title: "Испрати пријава",
+          subtitle: "Пополнете ги полињата подолу.",
+          submit: "Испрати извештај",
+        },
+        list: {
+          title: "Мои извештаи",
+          count: "извештаи",
+          empty: "Сè уште нема извештаи.",
+        },
+        table: {
+          date: "Датум",
+          timeOut: "Време на излегување",
+          timeReturn: "Време на враќање",
+          reason: "Причина",
+          raport: "Извештај",
+          status: "Статус",
+          department: "Дирекција",
+          createdAt: "Креирано",
+        },
+      },
+    },
+
     // DICT.mk
-login: {
-  logoAlt: "Општина",
-  title: "Најава",
-  subtitle: "Најави се за да продолжиш.",
-  fields: { username: "Корисничко име", password: "Лозинка" },
-  placeholders: { username: "Корисничко име...", password: "Лозинка..." },
-  actions: { submit: "Влези", loggingIn: "Се најавува..." },
-  footer: "Општина Струга",
-},
+    login: {
+      logoAlt: "Општина",
+      title: "Најава",
+      subtitle: "Најави се за да продолжиш.",
+      fields: { username: "Корисничко име", password: "Лозинка" },
+      placeholders: { username: "Корисничко име...", password: "Лозинка..." },
+      actions: { submit: "Влези", loggingIn: "Се најавува..." },
+      footer: "Општина Струга",
+    },
 
   },
 };

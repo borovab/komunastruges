@@ -18,3 +18,7 @@ export {default as SuperAdminWorkers} from "./SuperAdmin/SuperAdminWorkers/Super
 export {default as SuperAdminAddUser} from "./SuperAdmin/SuperAdminAddUser/SuperAdminAddUser.jsx";
 export {default as SuperAdminReports} from "./SuperAdmin/SuperAdminReports/SuperAdminReports.jsx";
 export {default as SuperAdminDepartments} from "./SuperAdmin/SuperAdminDepartments/SuperAdminDepartments.jsx";
+
+
+
+export {default as SuperAdminDepartmentsWorkers} from "./SuperAdmin/SuperAdminDepartmentsWorkers/SuperAdminDepartmentsWorkers.jsx";

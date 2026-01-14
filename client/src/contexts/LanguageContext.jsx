@@ -54,23 +54,22 @@ export function LangProvider({ children, defaultLang = "sq" }) {
     changeLang(lang === "sq" ? "mk" : "sq");
   }, [lang, changeLang]);
 
-  const t = React.useCallback(
-    (key, vars) => {
-      const table = DICT[lang] || DICT.sq;
+const t = React.useCallback(
+  (key, vars) => {
+    const table = DICT[lang] || DICT.sq;
 
-      let str = getByPath(table, key);
-      if (str == null) str = getByPath(DICT.sq, key);
-      if (str == null) str = key;
+    let str = getByPath(table, key);
+    if (str == null) str = key;
 
-      if (vars && typeof str === "string") {
-        for (const [k, v] of Object.entries(vars)) {
-          str = str.replaceAll(`{${k}}`, String(v));
-        }
+    if (vars && typeof str === "string") {
+      for (const [k, v] of Object.entries(vars)) {
+        str = str.replaceAll(`{${k}}`, String(v));
       }
-      return str;
-    },
-    [lang]
-  );
+    }
+    return str;
+  },
+  [lang]
+);
 
   const value = React.useMemo(
     () => ({
