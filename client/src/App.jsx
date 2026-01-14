@@ -1,9 +1,11 @@
 // App.jsx
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 
 import { ProtectedRoute } from "./components";
 import { getSession } from "./lib/api";
+import { useLang } from "./contexts/LanguageContext";
 
 import {
   Login,
@@ -32,7 +34,6 @@ import UserLayout from "./layouts/UserLayout";
 // ✅ MANAGER
 import ManagerLayout from "./layouts/ManagerLayout";
 
-
 import AdminProfile from "./pages/Admin/AdminProfile/AdminProfile.jsx";
 import AdminReports from "./pages/Admin/AdminReports/AdminReports.jsx";
 
@@ -56,80 +57,99 @@ function RootRedirect() {
   );
 }
 
+function FullScreenLangLoader() {
+  const { isChangingLang, t } = useLang();
+  if (!isChangingLang) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[999999] bg-black/35 backdrop-blur-[2px] grid place-items-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-12 w-12 rounded-full border-4 border-white/60 border-t-white animate-spin" />
+        <div className="text-white text-sm font-semibold">{t("common.loading") || "Loading..."}</div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function App() {
   return (
-    <Routes>
-      {/* PUBLIC */}
-      <Route element={<PublicLayout />}>
-        <Route path="/login" element={<Login />} />
-      </Route>
+    <>
+      <FullScreenLangLoader />
 
-      {/* USER */}
-      <Route
-        path="/user"
-        element={
-          <ProtectedRoute role="user">
-            <UserLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<UserDashboard />} />
-        <Route path="profile" element={<UserProfile />} />
-      </Route>
+      <Routes>
+        {/* PUBLIC */}
+        <Route element={<PublicLayout />}>
+          <Route path="/login" element={<Login />} />
+        </Route>
 
-      {/* MANAGER */}
-      <Route
-        path="/manager"
-        element={
-          <ProtectedRoute role="manager">
-            <ManagerLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<ManagerDashboard />} />
-        <Route path="profile" element={<ManagerProfile />} />
-        <Route path="workers" element={<ManagerWorkers />} />
-        <Route path="add-user" element={<ManagerAddUser />} />
-        <Route path="raportimet" element={<ManagerReports />} />
-      </Route>
+        {/* USER */}
+        <Route
+          path="/user"
+          element={
+            <ProtectedRoute role="user">
+              <UserLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<UserDashboard />} />
+          <Route path="profile" element={<UserProfile />} />
+        </Route>
 
-      {/* SUPERADMIN (same as ADMIN) */}
-      <Route
-        path="/superadmin"
-        element={
-          <ProtectedRoute role="superadmin">
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<SuperAdminDashboard />} />
-        <Route path="profile" element={<SuperAdminProfile />} />
-        <Route path="workers" element={<SuperAdminWorkers />} />
-        <Route path="add-user" element={<SuperAdminAddUser />} />
-        <Route path="raportimet" element={<SuperAdminReports />} />
-        <Route path="departments" element={<SuperAdminDepartments />} />
-      </Route>
+        {/* MANAGER */}
+        <Route
+          path="/manager"
+          element={
+            <ProtectedRoute role="manager">
+              <ManagerLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<ManagerDashboard />} />
+          <Route path="profile" element={<ManagerProfile />} />
+          <Route path="workers" element={<ManagerWorkers />} />
+          <Route path="add-user" element={<ManagerAddUser />} />
+          <Route path="raportimet" element={<ManagerReports />} />
+        </Route>
 
-      {/* ADMIN */}
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute role="admin">
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<AdminDashboard />} />
-        <Route path="profile" element={<AdminProfile />} />
-        <Route path="workers" element={<AdminWorkers />} />
-        <Route path="add-user" element={<AdminAddUser />} />
-        <Route path="raportimet" element={<AdminReports />} />
-        <Route path="departments" element={<AdminDepartments />} />
-      </Route>
+        {/* SUPERADMIN */}
+        <Route
+          path="/superadmin"
+          element={
+            <ProtectedRoute role="superadmin">
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<SuperAdminDashboard />} />
+          <Route path="profile" element={<SuperAdminProfile />} />
+          <Route path="workers" element={<SuperAdminWorkers />} />
+          <Route path="add-user" element={<SuperAdminAddUser />} />
+          <Route path="raportimet" element={<SuperAdminReports />} />
+          <Route path="departments" element={<SuperAdminDepartments />} />
+        </Route>
 
-      {/* ROOT */}
-      <Route path="/" element={<RootRedirect />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* ADMIN */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute role="admin">
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="profile" element={<AdminProfile />} />
+          <Route path="workers" element={<AdminWorkers />} />
+          <Route path="add-user" element={<AdminAddUser />} />
+          <Route path="raportimet" element={<AdminReports />} />
+          <Route path="departments" element={<AdminDepartments />} />
+        </Route>
+
+        {/* ROOT */}
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }
