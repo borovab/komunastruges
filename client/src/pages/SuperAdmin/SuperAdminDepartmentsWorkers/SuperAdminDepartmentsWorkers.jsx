@@ -1,5 +1,5 @@
 // src/pages/SuperAdmin/SuperamdinDepartament/SuperamdinDepartamentWorkers.jsx
-// ✅ Pro UI: header + breadcrumbs, stats, search, add worker modal, edit worker modal
+// ✅ Pro UI: header + breadcrumbs, stats, search, add worker modal, edit worker modal + DELETE worker
 // ✅ Route: /superadmin/departments/:depId
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -33,7 +33,6 @@ async function safeUpdateUser(userId, payload) {
 }
 
 async function safeCreateUser(payload) {
-  // tries common variants
   if (typeof api.createUser !== "function") throw new Error("api.createUser is not a function");
   try {
     return await api.createUser(payload);
@@ -41,8 +40,27 @@ async function safeCreateUser(payload) {
     try {
       return await api.createUser({ ...payload });
     } catch {
-      // last resort: positional
-      return await api.createUser(payload?.fullName, payload?.username, payload?.password, payload?.role, payload?.departmentId);
+      return await api.createUser(
+        payload?.fullName,
+        payload?.username,
+        payload?.password,
+        payload?.role,
+        payload?.departmentId
+      );
+    }
+  }
+}
+
+async function safeDeleteUser(userId) {
+  if (typeof api.deleteUser !== "function") throw new Error("api.deleteUser is not a function");
+  try {
+    return await api.deleteUser(userId);
+  } catch {
+    // common variants
+    try {
+      return await api.deleteUser({ id: userId });
+    } catch {
+      return await api.deleteUser(String(userId));
     }
   }
 }
@@ -78,6 +96,11 @@ export default function SuperamdinDepartamentWorkers() {
   const [eUsername, setEUsername] = React.useState("");
   const [ePassword, setEPassword] = React.useState("");
   const [savingUser, setSavingUser] = React.useState(false);
+
+  // delete confirm modal
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [deletingUser, setDeletingUser] = React.useState(null);
+  const [deleting, setDeleting] = React.useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -214,22 +237,18 @@ export default function SuperamdinDepartamentWorkers() {
     if (!fullName) return setErr(t("superAdminAddUser.errors.fullNameRequired"));
     if (!username) return setErr(t("superAdminAddUser.errors.usernameRequired"));
     if (username.length < 3) return setErr(t("superAdminAddUser.errors.usernameMin3"));
-
-    // keep it safe: only allow user/manager/admin here
     if (!["user", "manager", "admin"].includes(role)) return setErr(t("superAdminAddUser.errors.roleInvalid"));
 
     if (!password) return setErr(t("superAdminAddUser.errors.passwordRequired"));
     if (password.length < 6) return setErr(t("superAdminAddUser.errors.passwordMin6"));
     if (password !== password2) return setErr(t("superAdminAddUser.errors.passwordMismatch"));
 
-    // If role is user/manager, ensure department id is set (this page is always a department)
     const payload = {
       fullName,
       username,
       role,
       password,
       ...(role === "admin" ? {} : { departmentId: String(depId) }),
-      // for some backends admin can also have departmentId; harmless if accepted:
       ...(role === "admin" ? { departmentId: String(depId) } : {}),
     };
 
@@ -242,6 +261,39 @@ export default function SuperamdinDepartamentWorkers() {
     } catch (e2) {
       setErr(e2?.message || t("superAdminAddUser.errors.createFailed"));
       setCreating(false);
+    }
+  };
+
+  // ✅ DELETE
+  const openDelete = (u) => {
+    setErr("");
+    setOk("");
+    setDeletingUser(u);
+    setDeleteOpen(true);
+  };
+
+  const closeDelete = () => {
+    setDeleteOpen(false);
+    setDeletingUser(null);
+    setDeleting(false);
+  };
+
+  const confirmDelete = async () => {
+    setErr("");
+    setOk("");
+
+    const u = deletingUser;
+    if (!u?.id) return setErr(t("common.errorGeneric"));
+
+    setDeleting(true);
+    try {
+      await safeDeleteUser(u.id);
+      setOk(t("superAdminWorkers.ok.deleted")); // ✅ already exists in your dict
+      closeDelete();
+      await load();
+    } catch (e2) {
+      setErr(e2?.message || t("common.errorGeneric"));
+      setDeleting(false);
     }
   };
 
@@ -267,8 +319,7 @@ export default function SuperamdinDepartamentWorkers() {
           </h2>
 
           <p className="mt-1 text-[13px] sm:text-sm text-slate-600">
-            {t("adminDepartments.workersList.title")} •{" "}
-            <b className="text-slate-900">{counts.total}</b>
+            {t("adminDepartments.workersList.title")} • <b className="text-slate-900">{counts.total}</b>
             <span className="text-slate-500">
               {" "}
               (Admin: {counts.admins} • Manager: {counts.managers} • User: {counts.users})
@@ -328,21 +379,24 @@ export default function SuperamdinDepartamentWorkers() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="mt-4 text-sm text-slate-500">{t("common.loading")}</div>
-        ) : null}
+        {loading ? <div className="mt-4 text-sm text-slate-500">{t("common.loading")}</div> : null}
 
         {!loading && workersAll.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-sm font-semibold text-slate-900">{t("adminDepartments.workersList.empty")}</div>
-            <div className="text-[12px] text-slate-500 mt-1">Kliko “Create user” për me shtuar punëtor në këtë departament.</div>
+            <div className="text-[12px] text-slate-500 mt-1">
+              Kliko “Create user” për me shtuar punëtor në këtë departament.
+            </div>
           </div>
         ) : null}
 
         {!loading && workersAll.length > 0 ? (
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
             {workers.map((u) => (
-              <div key={u.id} className="rounded-3xl border border-slate-200 bg-white shadow-sm hover:bg-slate-50 transition">
+              <div
+                key={u.id}
+                className="rounded-3xl border border-slate-200 bg-white shadow-sm hover:bg-slate-50 transition"
+              >
                 <div className="p-4 flex items-start justify-between gap-3">
                   <div className="min-w-0 flex items-start gap-3">
                     <div className="shrink-0 h-10 w-10 rounded-2xl border border-slate-200 bg-white flex items-center justify-center text-sm font-extrabold text-slate-700">
@@ -361,20 +415,28 @@ export default function SuperamdinDepartamentWorkers() {
                           {normRole(u?.role) || "user"}
                         </span>
 
-                        {u.createdAt ? (
-                          <span className="text-[11px] text-slate-500">• {fmtDate(u.createdAt)}</span>
-                        ) : null}
+                        {u.createdAt ? <span className="text-[11px] text-slate-500">• {fmtDate(u.createdAt)}</span> : null}
                       </div>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => openEditWorker(u)}
-                    className="shrink-0 h-9 px-3 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-[12px] font-semibold shadow-sm"
-                  >
-                    {t("superAdminWorkers.actions.edit")}
-                  </button>
+                  <div className="shrink-0 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditWorker(u)}
+                      className="h-9 px-3 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-[12px] font-semibold shadow-sm"
+                    >
+                      {t("superAdminWorkers.actions.edit")}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => openDelete(u)}
+                      className="h-9 px-3 rounded-2xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 text-[12px] font-semibold shadow-sm"
+                    >
+                      {t("superAdminWorkers.actions.delete")}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="h-px bg-slate-100" />
@@ -412,7 +474,9 @@ export default function SuperamdinDepartamentWorkers() {
             <form onSubmit={submitAdd} className="p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">{t("superAdminAddUser.form.fullName")}</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    {t("superAdminAddUser.form.fullName")}
+                  </label>
                   <input
                     value={aFullName}
                     onChange={(e) => setAFullName(e.target.value)}
@@ -422,7 +486,9 @@ export default function SuperamdinDepartamentWorkers() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">{t("superAdminAddUser.form.username")}</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    {t("superAdminAddUser.form.username")}
+                  </label>
                   <input
                     value={aUsername}
                     onChange={(e) => setAUsername(e.target.value)}
@@ -435,7 +501,9 @@ export default function SuperamdinDepartamentWorkers() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">{t("superAdminAddUser.form.role")}</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    {t("superAdminAddUser.form.role")}
+                  </label>
                   <select
                     value={aRole}
                     onChange={(e) => setARole(e.target.value)}
@@ -443,6 +511,7 @@ export default function SuperamdinDepartamentWorkers() {
                   >
                     <option value="user">{t("superAdminAddUser.roles.user")}</option>
                     <option value="manager">{t("superAdminAddUser.roles.manager")}</option>
+                    <option value="admin">{t("superAdminAddUser.roles.admin")}</option>
                   </select>
                   <div className="mt-1 text-[11px] text-slate-500">{t("superAdminAddUser.hints.role")}</div>
                 </div>
@@ -456,7 +525,9 @@ export default function SuperamdinDepartamentWorkers() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">{t("superAdminAddUser.form.password")}</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    {t("superAdminAddUser.form.password")}
+                  </label>
                   <input
                     value={aPassword}
                     onChange={(e) => setAPassword(e.target.value)}
@@ -467,7 +538,9 @@ export default function SuperamdinDepartamentWorkers() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">{t("superAdminAddUser.form.confirmPassword")}</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">
+                    {t("superAdminAddUser.form.confirmPassword")}
+                  </label>
                   <input
                     value={aPassword2}
                     onChange={(e) => setAPassword2(e.target.value)}
@@ -573,6 +646,59 @@ export default function SuperamdinDepartamentWorkers() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Delete Confirm Modal */}
+      {deleteOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">{t("superAdminWorkers.actions.delete")}</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">@{deletingUser?.username || "-"}</div>
+              </div>
+              <button
+                type="button"
+                onClick={closeDelete}
+                className="h-9 px-3 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-[12px] font-semibold"
+              >
+                {t("common.close")}
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
+                <div className="text-sm font-semibold text-red-800">
+                  {t("superAdminWorkers.confirm.delete")}
+                </div>
+                <div className="mt-1 text-[12px] text-red-700">
+                  {deletingUser?.fullName ? deletingUser.fullName : ""}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={closeDelete}
+                  className="h-11 px-4 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-semibold"
+                >
+                  {t("superAdminWorkers.actions.cancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={deleting}
+                  className={cn(
+                    "h-11 px-4 rounded-2xl text-white text-sm font-semibold transition shadow-sm",
+                    deleting ? "bg-red-600/70 cursor-not-allowed" : "bg-red-600 hover:bg-red-700"
+                  )}
+                >
+                  {deleting ? t("common.loading") : t("superAdminWorkers.actions.delete")}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
